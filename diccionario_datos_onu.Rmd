@@ -1,0 +1,202 @@
+---
+title: "Diccionario Datos ONU"
+author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
+date: "18/3/2021"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+
+
+```{r read data_aux}
+data_1 <- read.csv2('./data/goal_1.csv')
+data_2 <- read.csv2('./data/goal_2.csv')
+data_3 <- read.csv2('./data/goal_3.csv')
+data_4 <- read.csv2('./data/goal_4.csv')
+data_5 <- read.csv2('./data/goal_5.csv')
+data_6 <- read.csv2('./data/goal_6.csv')
+data_7 <- read.csv2('./data/goal_7.csv')
+data_8 <- read.csv2('./data/goal_8.csv')
+data_9 <- read.csv2('./data/goal_9.csv')
+data_10 <- read.csv2('./data/goal_10.csv')
+data_11 <- read.csv2('./data/goal_11.csv')
+data_12 <- read.csv2('./data/goal_12.csv')
+data_13 <- read.csv2('./data/goal_13.csv')
+data_14 <- read.csv2('./data/goal_14.csv')
+data_15 <- read.csv2('./data/goal_15.csv')
+data_16 <- read.csv2('./data/goal_16.csv')
+data_17 <- read.csv2('./data/goal_17.csv')
+```
+
+```{r}
+datasets <- list(data_1,
+              data_2,
+              data_3,
+            data_4,
+            data_5,
+            data_6,
+            data_7,
+            data_8,
+            data_9,
+            data_10,
+            data_11,
+            data_12,
+            data_13,
+            data_14,
+            data_15,
+            data_16,
+            data_17
+)
+
+```
+
+
+
+```{r}
+
+diccionario <-0
+data <- 0
+
+for (data in datasets){
+  #Primero nos quedamos con todas las "Measure" únicas en el dataset
+  data_aux <- distinct(data, Measure, .keep_all = TRUE)
+  number_measures <- nrow(data_aux)
+  
+  #Sobre ellas, obtenemos el 
+  goal_number <- 0
+  goal_name <- 0
+  goal <- unique(data_aux$ï..Goal.Name)
+  
+  target_numbers <- 0
+  target_names <- 0
+  target <- data_aux$Target.Name
+  
+  indicator_numbers <- 0
+  indicator_names <- 0
+  indicator <- data_aux$Indicator.Name
+  
+  medidas <- data_aux$Measure
+  unidades <- data_aux$Units
+  edades <- data_aux$Age
+  sexo <- data_aux$Sex
+  
+  
+  educaciones <- replace_na(data_aux$Education.level, "")
+  minusvalidos <- replace_na(data_aux$Disability.status, "")
+  localizaciones <- data_aux$Country.or.Area
+  
+  i <- 1
+  while (i<number_measures+1){
+    
+    #GOALS
+    goal_number[i] <- regmatches(goal, regexpr('\\d{1,2}', goal))
+    aux <- stringr::str_locate(goal , ' - ')
+    goal_name[i] <- substr(goal, aux[2]+1, nchar(goal))
+    
+    #TARGET
+    target_number <- regmatches(target[i], regexpr('.\\..', target[i]))
+    target_numbers[i]=target_number
+    aux <- stringr::str_locate(target[i] , ' - ')
+    target_names[i] <- substr(target[i], aux[2]+1, nchar(target[i]))
+  
+    #INDICATORS
+    indicator_number <- regmatches(indicator[i], regexpr('.\\..{1,2}\\..', indicator[i]))
+    indicator_numbers[i]=indicator_number
+    aux <- stringr::str_locate(indicator[i] , ' - ')
+    indicator_names[i] <- substr(indicator[i], aux[2]+1, nchar(indicator[i]))
+    
+    #MEASURES no necesita tratamiento
+    #UNITS no necesita tratamiento
+    
+    #AGE
+    if (is.na(edades[i])){
+      edades[i] = "NO"
+    }
+    else {
+      if (edades[i] == ""){
+      edades[i] = "NO"
+      }
+      else{
+      edades[i] = "SI"
+      }
+    }
+    #SEX
+    if (is.na(sexo[i])){
+      sexo[i] = "NO"
+    }
+    else {
+      if (sexo[i] == ""){
+      sexo[i] = "NO"
+      }
+      else{
+      sexo[i] = "SI"
+      }
+    }
+    #EDUCATION
+    if (is.na(educaciones[i])){
+      educaciones[i] = "NO"
+    }
+    else {
+      if (educaciones[i] == ""){
+      educaciones[i] = "NO"
+      }
+      else{
+      educaciones[i] = "SI"
+      }
+    }
+    #DISABILITY STATUS
+    
+    if (minusvalidos[i] == ""){
+      minusvalidos[i] = "NO"
+    }
+    else {
+      minusvalidos[i] = "SI"
+    }
+    #LOCATION
+    if (localizaciones[i] == ""){
+      localizaciones[i] = "NO"
+    }
+    else {
+      localizaciones[i] = "SI"
+    }
+    
+    i <- i+1
+  }
+  
+  
+  diccionario_aux <- data.frame(Goal = goal_number, 
+                            Target = target_number, 
+                            Indicator = indicator_number,
+                            Measure = medidas,
+                            Units = unidades,
+                            Age = edades,
+                            Sex = sexo,
+                            Education_Level = educaciones,
+                            Disability_Status = minusvalidos,
+                            Country_Or_Area = localizaciones,
+                            Indicator_Name = indicator_names, 
+                            Target_Name = target_names, 
+                            Goal_Name = goal_name)
+
+diccionario <- rbind(diccionario, diccionario_aux)
+}
+diccionario
+
+
+indicator_number
+
+```
+
+
+
+```{r Exportamos a }
+
+write.csv(diccionario,"./data/diccionario_datos_onu.csv", row.names = FALSE)
+
+```
+
+
