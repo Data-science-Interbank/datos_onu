@@ -1,0 +1,63 @@
+---
+title: "procesado_clasificacion"
+author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
+date: "30/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+
+```{r lectura datos}
+data_9 <- read.csv2('./data/goal_9.csv')
+data_9
+```
+
+```{r}
+country <- 0
+year <- 0
+goal_9_regresion <- 0
+aux <-0
+
+medida = "Manufacturing value added per capita (constant 2015 United States dollars)"
+
+goal_9 <- data_9 %>%
+            filter(Measure == medida) %>%
+              distinct(Country.or.Area, .keep_all = TRUE)
+
+country_list <- goal_9$Country.or.Area
+
+i <- 1
+
+while (i < length(country_list)){
+  
+  goal_9_country <- data_9 %>%
+                          filter(Measure == medida
+                                 & Country.or.Area == country_list[i])
+  
+  goal_9_country <- goal_9_country %>%
+                          filter(Year == max(goal_9_country$Year))
+  
+  aux <- data.frame(Country = country_list[i],
+                    Year = goal_9_country$Year,
+                    Manufacturing_value_added_per_capita_in_dollars = goal_9_country$X.Average.Value)
+      
+  goal_9_regresion <- rbind(goal_9_regresion, aux)
+  
+  i <- i+1
+}
+
+goal_9_regresion
+```
+```{r}
+
+
+
+
+
+```
+
