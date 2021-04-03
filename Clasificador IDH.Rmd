@@ -1,0 +1,433 @@
+---
+title: "Clasificador IDH"
+author: "Julia, Arturo, José Enrique, Antonio"
+date: "12 de marzo de 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Visualización de datos con ggplot2
+
+**ggplot2** es un paquete forma parte del tidyverse y que ha sido diseñado para trabajar de manera cómoda y fluida junto con _dyplr_ y el resto de sus componentes.
+
+Para poder usarlo, si no hemos cargado el tidyverse, debemos cargarlo, además cargaremos el resto del tidyverse y el paquege de datos gapminder:
+
+
+```{r cars}
+library(ggplot2)
+library(dplyr)
+library(gapminder)
+```
+
+
+El Índice de Desarrollo Humano (IDH) es un índice estadístico compuesto por
+- la esperanza de vida,
+- la educación (tasa de alfabetización, tasa bruta de escolarización en diferentes niveles y tasa neta de asistencia) y
+- los indicadores de renta per cápita,
+que se utilizan para clasificar a los países en cuatro niveles de desarrollo humano. 
+
+Un país obtiene una puntuación más alta en el IDH cuando:
+- la esperanza de vida es mayor,
+- el nivel educativo es más alto y
+- el ingreso nacional bruto (INB) per cápita es mayor.
+
+Fue desarrollado por el economista pakistaní Mahbub ul Haq y fue utilizado posteriormente para medir el desarrollo de un país por la Oficina del Informe sobre Desarrollo Humano del Programa de las Naciones Unidas para el Desarrollo (PNUD) [1,2,3].
+
+[1] A. Stanton, Elizabeth (February 2007). "The Human Development Index: A History". PERI Working Papers: 14–15. Archived from the original on 28 February 2019. Retrieved 28 February 2019.
+[2] "Human Development Index". Economic Times. Archived from the original on 1 December 2017. Retrieved 29 November 2017.
+[3] "The Human Development concept". UNDP. 2010. Archived from the original on 15 April 2012. Retrieved 29 July 2011.
+
+El Informe de Desarrollo Humano de 2010 introdujo un IDH ajustado por la Desigualdad (IHDI). Aunque el IDH simple sigue siendo útil, en él se afirmaba que "el IHDI es el nivel real de desarrollo humano (teniendo en cuenta la desigualdad), mientras que el IDH puede considerarse un índice de desarrollo humano "potencial" (o el nivel máximo de IDH) que podría alcanzarse si no hubiera desigualdad"[4].
+
+[4] Human Development Index, "Composite indices — HDI and beyond", Retrieved 16 January 2021.
+
+El índice se basa en el enfoque del desarrollo humano, desarrollado por Mahbub ul Haq, a menudo enmarcado en términos de si las personas son capaces de "ser" y "hacer" cosas deseables en la vida. Los ejemplos incluyen: 
+- estar: bien alimentado, protegido, saludable;
+- hacer: trabajar, educarse, votar, participar en la vida comunitaria. 
+
+La libertad de elección es fundamental: alguien que decide pasar hambre (como durante un ayuno religioso) es muy diferente de alguien que pasa hambre porque no puede permitirse comprar alimentos o porque el país está en situación de hambruna [5].
+
+[5] "What is Human Development". UNDP. 2017. Archived from the original on 27 October 2017. Retrieved 27 October 2017. "... human development approach, developed by the economist Mahbub Ul Haq ...'"
+
+El índice no tiene en cuenta varios factores, como la riqueza neta per cápita o la calidad relativa de los bienes de un país. Esta situación tiende a rebajar la clasificación de algunos de los países más avanzados, como los miembros del G7 y otros [6]. 
+
+[6] The Courier. Commission of the European Communities. 1994.
+
+## Una introducción a los conceptos básicos de ggplot usando scatterplots
+
+Vamos a crear un scatterplot (también llamado gráfico de puntos o gráfico de dispersión) que represente los datos de la renta per cápita de los paises (en el eje de las X) frente a los de la esperanza de vida (en el eje de las Y) en 2007.
+```{r Esperanza de vida frenta a renta per capita}
+gapminder2007 <- gapminder %>% filter(year==2007)
+
+ggplot( gapminder2007, aes(x = gdpPercap,y = lifeExp)) +
+          geom_point()
+```
+
+Hay diversos elementos que merece la pena destacar en el ejemplo anterior:
+  * Primero, hemos creado un nuevo plot invocando a la función ggplot con un dataframe y una "estética" como parámetros.
+  * Esa estética especifica que en el eje horizontal se representará la renta per cápita, y en el vertical la esperanza de vida.
+  * Añadimos una capa al gráfico (con el operador +) donde se representan los puntos geométricos asociados a cada observación en esos ejes, le estamos diciendo cómo representar las observaciones en ese gráfico.
+
+Este es un esquema que se repetirá en todos los plots de ggplot que creemos y que permite una gran flexibilidad, puesto que permite ir construllendo los elementos de un gráfico cómo si de un puzle se tratara.
+
+Por ejemplo, fijémosnos en la distribución del gráfico que representa la esperanza de vida frente al PIB per cápita, puede observarse una tendencia general que establece que a mayor PIB, en general, mayor esperanza de vida. Además puede observarse como los valores de gdp abarca varios órdenes de magnitud  (sus valores van desde los pocos centenares, donde se mueven una mayoría de países, a las decenas de miles donde aparecen sólo unos pocos), lo que provoca que muchos paises se amontonen en la parte izquierda del gráfico. En estos casos suele ser útil usar una escala logarítmica, para ello añadiremos una transformación adicional a nuestro gráfico después de la capa de puntos geométricos:
+
+
+```{r Uso de escala logarítmica}
+ggplot( gapminder2007, aes(x = gdpPercap,y = lifeExp)) +
+          geom_point() +
+          scale_x_log10()
+```
+
+## Estéticas adicionales
+
+En los gráficos anteriores, hemos usado los ejes horizontal y vertical para representar la esperanza de vida, y el PIB per cápita, pero nuestro dataframe tiene mucha más información de interés que podría convenirnos representar junto con la anterior, como por ejemplo, la población o el continente al que pertecnece el país. 
+
+Podemos usar más dimensiones estéticas para representar esa información, como el color y el tamaño de los puntos representados.
+
+El color suele adaptarse relativamente bien a representar información categórica en los gráficos, porque al ojo humano le resulta difícil distingir cambios pequeños en las tonalidades pero distinge muy bien cambios grandes entre tonos. Por ello, es conveniente usarlo para representar el continente mejor que la población:
+
+```{r Usando la dimensión del color}
+ggplot( gapminder2007, aes(x = gdpPercap,y = lifeExp,color=continent)) +
+          geom_point() +
+          scale_x_log10()
+```
+
+Para representar una variable como la población es más interesante usar el tamaño de los puntos, puesto que los humanos solemos ser más precisos a la hora de distiguir las variaciones de tamaño.
+
+```{r Usando el tamaño de los puntos como una dimensión adicional}
+ggplot( gapminder2007, aes(x = gdpPercap,y = lifeExp,color=continent,size=pop)) +
+          geom_point(aes(alpha=0.5)) +
+          scale_x_log10()
+```
+
+En este caso hemos añadido además una estética específica a la capa de los puntos para hacer que sean translúcidos ( alpha representa el nivel de trasparencia) y no se tapen totalmente los unos a los otros.
+
+Así, en este gráfico estamos mostrando 4 variables de las observaciones a la vez, usando las propiedades estéticas asociadas a los puntos que representan cada observación (posción en el eje de las X, posición en el eje de las Y, color, y tamaño). Por decirlo de alguna manera, en realidad este es un gráfico cuatri-dimensional.
+
+## Facetas
+
+Sin embargo, a veces, bien para mejorar la claridad del gráfico, bien por las limitaciones del medio en el que vamos a representar los gráficos (en blanco y negro para la mayoría de las publicaciones), necesitamos simplificar nuestros gráficos sin dejar de mostrar algunas de las dimensiones del mismo. En esos casos, si tenemos variables categóricas con pocos niveles, puede ser interesante crear *facetas* del gráfico para cada nivel, es decir crear sub-gráficos (versiones más pequeñas) del gráfico para cada nivel de esa vairable. Por ejemplo si creamos una faceta por continente en nuestro gráfico anterior obtendríamos:
+
+```{r Uso de facetas para generar múltipos gráficos alineados}
+ggplot( gapminder2007, aes(x = gdpPercap,y = lifeExp,size=pop)) +
+          geom_point(aes(alpha=0.5)) +
+          scale_x_log10() +
+          facet_wrap(~continent)
+```
+
+Las facetas son una herramienta muy potente porque permiten apreciar fácilmente diferencias entre grupos, compararlos y buscar relaciones.
+
+Podemos aplicar todo lo visto anteriormente para visualizar datos agrupados:
+
+```{r Evolución de la población mundial}
+by_year <- gapminder %>%
+  group_by(year) %>%
+  summarize(totalPop = sum(as.numeric(pop)),
+            meanLifeExp = mean(lifeExp))
+
+ggplot(by_year, aes(x = year, y = totalPop)) +
+  geom_point()
+```
+
+### Ejercicio 1
+
+Os invitaros ahora a hacer una representación de datos agregados de la evolución de la esperanza de vida y la renta per capita. ¿Que interpretación le dáis?
+
+Podéis pintar los datos también por continente (bien con facetas bien con colores), ¿que luz arroja esto respecto de la interpretación anterior?
+
+```{r Ejercicio 1}
+by_year_and_continent <- gapminder %>%
+  group_by(year,continent) %>%
+  summarize(totalPop = sum(as.numeric(pop)), meanLifeExp = mean(lifeExp))
+
+ggplot(by_year_and_continent, aes(x = year, y=totalPop, color=continent)) + 
+  geom_point()
+
+```
+
+## Modificadores adicionales
+
+Existen algunos modificadores adicionales que pueden ser útiles para nuestros gráficos, para empezar, vamos a indicar que queremos que la gráfica empiece en 0 en el eje de las Y (población total):
+
+```{r Modificadores adicionales}
+ggplot(by_year, aes(x = year, y = totalPop)) +
+  geom_point() +
+  expand_limits(y = 0)
+```
+
+Veamos ahora la evolución de la población total con el tiempo por continente:
+
+```{r Evolución por continentes}
+by_year_continent <- gapminder %>%
+  group_by(year, continent) %>%
+  summarize(totalPop = sum(as.numeric(pop)),
+            meanLifeExp = mean(lifeExp))
+
+ggplot(by_year_continent, aes(x = year, y = totalPop, color = continent)) +
+  geom_point() +
+  expand_limits(y = 0)
+```
+
+### Ejercicio 2
+
+¿Podrías mostrar tu la evolución temporal de la esperanza de vida por continentes?, ¿cómo lo interpretas?
+
+```{r Ejercicio 2: Evolución de la esperanza de vida por continentes}
+
+```
+
+## Gráficos de líneas (Line Plots)
+
+Hasta ahora todas las visualizaciones de datos que hemos hecho eran ScatterPlots, es decir, gráficos de puntos que son adecuados para comparar dos variables (asociadas los ejes del gráfico), con cada punto representando una observación. Estos gráficos permiten además observar distribuciones generales.  
+
+Los **gráficos de línea** por el contrario son buenos para _resaltar la visualización de los cambios que se producen en una variable con respecto de los de otra_, por ejemplo, la evolución de la población o la experanza de vida conforme pasa el tiempo. 
+
+Este tipo de gráficos permite visualizar muy claramente las tendencias y sus cambios. Ej:
+```{r Gráficos de línea}
+ggplot(by_year_continent, aes(x = year, y = meanLifeExp, color = continent)) +
+  geom_line() +
+  geom_point() +
+  expand_limits(y = 0)
+```
+
+Fijáos en la evolución de la esperanza de vida en áfrica, cómo a finales de los ochenta se aprecia un claro frenazo en su crecimiento, se estanca e incluyo llega a bajar un poco hasta poco después del 2000, mientras que el resto del mundo sigue en crecimiento. ¿A qué creeis que se debe?
+
+Esto era mucho más difícil de apreciar en el gráfico de puntos, y el gráfico de líneas nos ayuda a visualizarlo claramente.
+
+## Gráficos de Barras
+
+
+Los gráficos de barras son útiles cuando queremos comparar valor entre un conjunto pequeño de categorías  discretas. Por ejemplo podríamos querer comparar la renta per cápita media por continente:
+
+```{r Gráficos de barras}
+by_continent <- gapminder %>%
+  filter(year == 2007) %>%
+  group_by(continent) %>%
+  summarize(meanLifeExp = mean(lifeExp))
+
+
+ggplot(by_continent, aes(x = continent, y = meanLifeExp)) +
+  geom_col()
+```
+
+Hasta ahora hemos investigado dos dimensiones distintas de los datos o más para cada gráfico, pero existen gráficos que se centran en describir una única dimensión, como por ejemplo, el **histograma**, que es un tipo especial de gráfico de barras.
+
+En un **histograma**, cada barra representa un intervalo del docminio o conjunto de valores de la variable a estudiar, y su altura representa el número de veces que (la frecuencia con la que) aparecen valores dentro de ese intervalo o conjunto en la muestra. A esos intervalos dentro del histograma los llamaremos **bin**s.
+
+Esta particularidad de los histogramas permite obtener una descripción no sólo de la media de los valores de la variables sino de la forma de su distribución, es decir, de cómo se distribuyen los valores observados a lo largo del rango de valores posible de la variable.
+
+Una característica importante de los histogramas es que tienen una única estética: el eje de las X. Por ejemplo podemos mostrar un histograma de la esperanza de vida a nivel mundial en 2007:
+
+```{r Histogramas}
+ggplot(gapminder2007, aes(x = lifeExp)) +
+  geom_histogram()
+```
+
+En este caso, la anchura de cada bin está escogida de manera automática, y es un atributo que afecta enormemente a la información reflejada en el histograma. Podemos alterar dicha anchura:
+
+```{r Histograma con número de columnas personalizadas}
+ggplot(gapminder2007, aes(x = lifeExp)) +
+  geom_histogram(binwidth = 5)
+```
+
+
+```{r Histograma con número de columnas personalizadas DENSIDAD}
+ggplot(gapminder2007, aes(x = lifeExp)) +
+  geom_density()
+```
+
+La selección de una anchura mayor en los bins del histograma (en este caso la correspondiente a 5 años) hace que los resultados sean menos precisos y la forma de la distribución menos suave, pero nos permite centrarnos mejor en la forma general en lugar de en los detalles concretos de valores específicos.
+
+En algunos casos, es necesario poner el eje X de nuestro histograma en una escala logarítmica para poder aprecia la distribución de la información, puesto que los datos pueden tener un rango muy grande con una frecuencia muy baja de datos en los valores más altos. Por ejemplo, si mostramos un histograma de la población en 1952:
+
+```{r Histograma que se vería mejor en escala logarítmica}
+gapminder_1952 <- gapminder %>%
+  filter(year == 1952)
+
+ggplot(gapminder_1952,aes(x=pop)) +
+  geom_histogram()
+```
+
+Puede apreciarse cómo la mayor parte del histograma está prácitamente vacía, con una gran concentración de países asocados a la primera barra del mismo. Pero si cambiamos a una escala logarítmica en el eje de las X:
+
+```{r Histograma con escala logarítmica}
+gapminder_1952 <- gapminder %>%
+  filter(year == 1952)
+
+ggplot(gapminder_1952,aes(x=pop)) +
+  geom_histogram() +
+  scale_x_log10()
+```
+
+    Ahora el histograma está mucho mejor proporcionado, y nos permite visualizar mejor la distribución de los datos de población de los países.
+    
+## Gráficos de cajas (Boxplots)
+
+Cuando queremos relacionar la distribución de valores de una variable con el valor de otra, probablemente el mejor gráfico que podemos usar es un *boxplot* o gráfico de cajas (también llamado gráfico de bigotes y cajas).
+
+Por ejemplo, ¿cómo podríamos proundizar en los valores de la distribución de la esperanza de vida teniendo en cuenta los continentes en los que están los paises?. Usemos un boxplot:
+
+```{r Gráficos de cajas}
+ggplot(gapminder2007, aes(x = continent, y = lifeExp)) +
+  geom_boxplot()
+```
+
+Un boxplot tiene dos estéticas por defecto, una por cada eje. Un boxplot no es un gráfico trivial, que uno pueda interpretar de una manera intuitiva, sino que hay que comprender bien lo que significan cada uno de los elementos gráficos que aparecen para poder captar toda la información que contiene.
+
+La linea negra en mitad de cada caja representa la mediana de la variable asociada al eje de las Y (la esperanza de vida en nuestro caso) para cada valor de la variable de las X (cada contiente en nuestro caso), pero **¿Qué representa la mediana?**...
+
+Las líneas superior e inferior de cada caja representan el percentil 75 y 25 de la distribución respectivamente. Es decir, la mitad de la distribución presenta valores dentro de la caja. Las lineas que aparecen arriba y abajo de cada caja se llaman los bigotes (**whiskers** en inglés), y cubren el resto de la distribución estimada de la variable. Los puntos que aparecen más allá de los bigotes representan **outliers** (observaciones que se consideran "raras" y que puede haber sufrido errores al transcribir los datos o estar sujetas a condiciones especiales específicas).
+
+En este caso podemos observar cómo hay 2 paises, uno de America y otro de Asia con una esperanza de vida inusualmente baja.
+
+Así, este gráfico nos muestra una gran cantidad de información sobre la distbución de la esperanza de vida de los paises, de la que podemos sacar mucho conocimiento de interés,
+
+Por ejemplo, podemos ver cómo la experanza de vida de Europa está entre las más altas, y que los dos paises en oceanía tienen valores muy altos (pero no los más altos). Para visualizar mejor esto, se suele añadir una barra al final de los bigotes:
+
+```{r Gráficos de cajas con líneas de error}
+ggplot(gapminder2007, aes(x = continent, y = lifeExp)) +
+  stat_boxplot(geom ='errorbar') + 
+  geom_boxplot()
+```
+
+Así se aprecia mejor cómo el continente que tiene un país con la esperanza de vida más alta es Asia (si investigamos un poco esto, veremos que el país es concretamente Japón), seguido muy de cerca por algún país europeo ¿adivináis cual és? Usa los conocimientos adquiridos en la sesión de manejo y tratamiento de datos básico para averiguarlo.
+
+```{r Identificar el país con la esperanza de vida más alta de europa}
+
+```
+
+Otra apreciación interesante es el valor tan bajo de esperanza de vida que presentan los paises de África, donde el 75% de  los paises tiene una esperanza de vida inferior a los 60 años, y un 25% de ellos lo tiene inferior a los 50. 
+
+Si comparamos el boxplot con el histograma inicial que generamos, podemos ver cómo el boxplot nos da mucha más información:
+
+```{r Comparación de histograma con boxplot}
+library(ggpubr) # necesaria para poder usar la función ggarrange
+
+hist <- ggplot(gapminder2007, aes(x = lifeExp)) +
+          geom_histogram() + 
+          coord_flip() +
+          scale_y_reverse()
+          
+
+bp <- ggplot(gapminder2007, aes(x = continent, y = lifeExp)) +
+    stat_boxplot(geom ='errorbar') +
+    geom_boxplot()
+
+
+ggarrange(hist,bp, labels=c("Histograma","Gráfico de Barras"),nrow=1,ncol=2)
+```
+
+Podemos ver dos partes en el histograma, uno para los países entre 67 y 82 (que representa a europa, oceanía américa y buena parte de Asia), y otro para los países de 66 hacia abajo (que representa a algunos paises asiáticos, algunos paises americanos y a prácticamente toda áfrica). 
+
+## Aspectos avanzados
+
+### Cómo añadir etiquetas a los outliers
+
+En un boxplot, los outliers se identifican mediante una regla: si la distancia entre el outlier y el cuartil más cercano es mayor que 1,5 veces el rango intercuartílico (la distancia entre el Q1 y el Q3), entonces el punto se considera un outlier.
+
+Por tanto la siguiente función nos permite identificar si un punto es un outlier o no:
+
+```{r función para la identificación de outliers}
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+```
+
+Usando esa función, podemos calcular una nueva columna que indica si un valor es oulier o no en un contexto determinado. Por ejemplo, podemos usarla para calcular si un pais es un outlier en un grupo de paises por continente:
+
+
+```{r Datos de los outliers del dataset}
+outlier_data <- gapminder2007 %>%
+                  group_by(continent) %>%
+                  mutate(is_lifeExp_by_continent_outlier=is_outlier(lifeExp))
+outlier_data
+```
+
+
+```{r echo=FALSE, results='markup'}
+knitr::kable(outlier_data)
+```
+
+Usando esa nueva columna, podemos crear a su vez otra nueva columna que contenga las etiquetas que deseamos añadir al gráfico:
+```{r Outliers con etiquetas marcados sobre el boxplot}
+outlier_data <- outlier_data %>%
+                mutate(etiqueta_outlier=ifelse(is_lifeExp_by_continent_outlier,as.character(country),""))
+
+ggplot(outlier_data, aes(x = continent, y = lifeExp)) +
+  geom_boxplot() + 
+  geom_text(aes(label=etiqueta_outlier),nudge_y=-0.8,nudge_x = 0.3)
+```
+
+Es importante hacer notar el uso de as.character para transformar el valor del factor country en su representación textual (es decir, en el nombre del país).
+Finalmente, podemos superponer las etiquetas generadas sobre el gráfica para obtener el resultado que buscamos.
+
+Nótese cómo se ha usado la estética label de la capa de texto superpuesta para indicar la columna que contiene el texto a mostrar, y cómo hemos desplazado las etiquetas el equivalente a 0.8 años en el eje de las Y y media columna en el eje de las X para evitar que se solapen con los puntos.
+
+¿Porqué Haití y Afganistán?
+
+También hubiéramos podido obtener la lista de valores asociados a los outliers directamente del boxplot de la siguiente manera:
+```{r Alternativa para construir boxplot con outliers}
+boxplot <- ggplot(gapminder2007, aes(x = continent, y = lifeExp)) +
+          geom_boxplot()
+
+boxplot_build_elements <- ggplot_build(boxplot)
+
+boxplot_build_data <- boxplot_build_elements$data
+
+outliers <- boxplot_build_data[[1]]$outliers
+
+outliers
+```
+```{r}
+boxplot
+```
+
+Y a partir de ahí podríamos buscar los paises con esos niveles y mostrarlos en una capa de texto, tal y como hicimos arriba.
+
+### Temas en ggplot
+
+A veces el esquema de colores usado para representar los gráficos en ggplot por defecto no es conveniente, o queremos adaptarlos para que se adecúen a la imagen corporativa de la ofganización para la que trabajamos.
+
+## Ejercicios Adicionales
+
+1 Mosrar en un scatterplot la población frente a la esperanza de vida.
+
+```{r Ejercicio adicional 1}
+
+```
+
+2 Mostrar en un scatterplot, la riqueza absoluta frente a la población.
+
+```{r Ejercicio adicional 2}
+
+```
+
+3 Mostrar un scatterplot con la población en X y el PIB per capita en y, ambos en escala logaritmica.
+
+```{r Ejercicio adicional 3}
+
+```
+
+4 Mostrar la evolución del la mediana del PIB por continente a lo largo del tiempo.
+
+```{r Ejercicio adicional 4}
+
+```
+
+5 Mostrar la distribución de la renta per cápita por continen en 1952. ¿Quién crees que son los 2 outliers en américa? ¿y el de Asia?
+
+```{r Ejercicio adicional 5}
+
+```
+
+6 Añade un título coherente a este último gráfico (usa google para buscar cómo se hace).
+
+```{r Ejercicio adicional 6}
+
+```
+
+
