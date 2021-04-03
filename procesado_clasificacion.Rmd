@@ -23,41 +23,76 @@ year <- 0
 goal_9_regresion <- 0
 aux <-0
 
-medida = "Manufacturing value added per capita (constant 2015 United States dollars)"
+indicatir <- '9.2.1'
 
 goal_9 <- data_9 %>%
-            filter(Measure == medida) %>%
+            filter(stringr::str_detect(Indicator.Name, indicatir)) %>%
               distinct(Country.or.Area, .keep_all = TRUE)
 
 country_list <- goal_9$Country.or.Area
 
-i <- 1
+# Esto es en el caso de los menores o iguales a 9. Para objetivos posteriores 11,16
+goal_9_indicators_as_list <- data_9 %>%
+                      distinct(Indicator.Name, .keep_all = TRUE) %>%
+                        select(Indicator.Name) %>%
+                          map(function(x) substring(x, 11, 15))
 
-while (i < length(country_list)){
-  
-  goal_9_country <- data_9 %>%
-                          filter(Measure == medida
-                                 & Country.or.Area == country_list[i])
-  
-  goal_9_country <- goal_9_country %>%
-                          filter(Year == max(goal_9_country$Year))
-  
-  aux <- data.frame(Country = country_list[i],
-                    Year = goal_9_country$Year,
-                    Manufacturing_value_added_per_capita_in_dollars = goal_9_country$X.Average.Value)
-      
-  goal_9_regresion <- rbind(goal_9_regresion, aux)
-  
-  i <- i+1
+
+goal_9_years_as_list <- data_9 %>%
+                      distinct(Year, .keep_all = TRUE) %>%
+                        select(Year)
+
+goal_9_measure_as_list <- data_9 %>%
+                      distinct(Measure, .keep_all = TRUE) %>%
+                        select(Measure)
+
+# for(ind in goal_9_indicators_as_list){
+#   goal_9_ind_measures_filtrado <- data_9 %>%
+#                                     select(Indicator.Name, Measure) %>%
+#                                       filter(stringr::str_detect(Indicator.Name, ind))
+# }
+
+
+# measures <- split(goal_9_measure_as_list, 0)
+# years <- split(goal_9_years_as_list, 0)
+
+headers <- c()
+country_value_list <- c()
+country_value_list_aux <- c()
+for(m in 1:nrow(goal_9_measure_as_list)){
+  for (y in 1:nrow(goal_9_years_as_list)) {
+    # print(paste(goal_9_measure_as_list[m, ], goal_9_years_as_list[y, ], sep="__"))
+    name_column <- paste(goal_9_measure_as_list[m, ], goal_9_years_as_list[y, ], sep="__")
+    headers <- c(headers, name_column)
+    for (c in country_list) {
+       country_value <- data_9 %>%
+                        filter(Country.or.Area == c,
+                               Measure == goal_9_measure_as_list[m, ],
+                               Year == goal_9_years_as_list[y, ]) %>%
+                          select(X.Average.Value)
+       country_value_list_aux <- c(country_value_list_aux, country_value[1,])
+    }
+    country_value_list <- c(country_value_list, list(country_value_list_aux))
+    country_value_list_aux <- c()
+  }
 }
 
-goal_9_regresion
+# col_numbers_df <- nrow(goal_9_measure_as_list) * nrow(goal_9_years_as_list)
+
+#create data frame with 0 rows and 5 columns
+df <- data.frame(matrix(ncol = length(headers), nrow = 0))
+
+#provide column names
+colnames(df) <- headers
+
+#view structure of the data frame
+# str(df)
+
 ```
+
+
+
 ```{r}
-
-
-
-
-
-```
-
+df <- data.frame(country_value_list)
+colnames(df) <- headers
+df$country <- country_list
