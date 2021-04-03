@@ -1,0 +1,82 @@
+---
+title: "EmissionsReport"
+author: "Julia Palacios"
+date: "3/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, eval=TRUE, include=FALSE}
+install.packages("viridisLite")
+library(tidyverse)
+library(ggplot2)
+library(forcats)
+library(hrbrthemes)
+library(viridis)
+
+```
+GOALS
+```{r data}
+goal1 <- read_delim(file = "data/goal_1.csv",delim =";")
+goal3 <- read_delim(file = "data/goal_3.csv", delim = ";")
+goal4 <- read_delim(file = "data/goal_4.csv", delim = ";")
+goal5 <- read_delim(file = "data/goal_5.csv", delim = ";")
+goal6 <- read_delim(file = "data/goal_6.csv", delim = ";")
+goal7 <- read_delim(file = "data/goal_7.csv", delim = ";")
+goal8 <- read_delim(file = "data/goal_8.csv", delim = ";")
+goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
+goal10 <- read_delim(file = "data/goal_10.csv", delim = ";")
+goal11 <- read_delim(file = "data/goal_11.csv", delim = ";")
+goal12 <- read_delim(file = "data/goal_12.csv", delim = ";")
+goal13 <- read_delim(file = "data/goal_13.csv", delim = ";")
+goal14 <- read_delim(file = "data/goal_14.csv", delim = ";")
+goal15 <- read_delim(file = "data/goal_15.csv", delim = ";")
+goal17 <- read_delim(file = "data/goal_17.csv", delim = ";")
+```
+
+1. TRATAMIENTO DE DATOS
+
+En este apartado ordenaremos los datos con el fin de cumplan los criterios de 'tidy data'.
+En primer lugar:
+- Renombramos columnas cuyos nombres no son cómodos a la hora de trabajar
+- Convertimos a variables númericas las que son
+- Utilizamos la función gather() para reordenar la tabla
+
+```{r pressure, echo=FALSE}
+
+names(goal9)[7] = "AverageValue"
+names(goal9)[5] = "CountryOrArea"
+
+goal9$AverageValue <- as.numeric(as.character(goal9$AverageValue))
+
+goal9tonnes <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>%
+  filter(Measure=="Carbon dioxide emissions from fuel combustion (millions of tonnes)",
+         CountryOrArea %in% c("Africa", "Oceania", "Americas","Europe","Asia")) %>% 
+  group_by(Year) %>% 
+  complete(Year, AverageValue) 
+
+         #gather(key=Year,value=AverageValue,-CountryOrArea,-Measure) 
+  #NO SE USAR BIEN GATHER HELPPPP
+
+
+goal9tonnes %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_point()
+
+```
+Como podemos observar para este indicador no tenemos suficientes datos para tener una vista global por continente.
+
+Utilizamos otro indicador: Emisiones de CO2 por unidad de producto interior bruto (kg de CO2 por la constante del dolar en EEUU en 2010). Es un indicador de la contaminación producida en relación al valor del mercado y toda la producción de cada continente.
+```{r}
+goal9GDP <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>% 
+  filter(Measure=="Carbon dioxide emissions per unit of GDP (kilogrammes of CO2 per constant 2010 United States dollars)", 
+         CountryOrArea %in% c("Europe", "Oceania","Africa","Asia","Americas")) %>% 
+         group_by(Year) 
+
+
+goal9GDP %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea))+geom_point()
+
+```

@@ -1,0 +1,229 @@
+---
+title: "Evaluación Goal 9"
+author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
+date: "30/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(corrplot)
+library(PerformanceAnalytics)
+```
+0. LECTURA DE DATOS
+
+```{r lectura datos}
+goal_9 <- read_delim(file = "data/goal_9.csv", delim = ";")
+
+names(goal_9)[2] = "Target"
+names(goal_9)[3] = "Indicator"
+names(goal_9)[7] = "AverageValue"
+names(goal_9)[5] = "CountryOrArea"
+goal_9$AverageValue <- as.numeric(as.character(goal_9$AverageValue))
+
+```
+1. PLANTEAMIENTO DEL EXPERIMENTO
+
+Vamos a estudiar la correlación entre cuatro medidas que tenemos para evaluar la consecución del OBJETIVO 9: Construir infraestructura resiliente, promover la industrialización inclusiva y sostenible y fomentar la innovación. 
+
+Estas cuatro medidas son:
+  . Valor agregado de manufactura per cápita (dólares de los Estados Unidos a precios constantes de 2015)
+  . Flujos oficiales totales de infraestructura, por países receptores (millones de dólares estadounidenses constantes de 2018)
+  . Emisiones de dióxido de carbono por combustión de combustibles (millones de toneladas)
+  . Proporción de población cubierta por al menos una red móvil 2G, 3G o 4G (%)
+  
+La última medida ha sido recalculada a partir de 3 medidas: Consistía en un porcentaje de población cubierta con tecnologías 2G, 3G y 4G. Hemos hecho una media con esas tres medidas a fin de obtener cuanta población está cubierta de media con alguna de esas 3 tecnologías.  
+
+```{r}
+medida = "Manufacturing value added per capita (constant 2015 United States dollars)"
+medida2= "Total official flows for infrastructure, by recipient countries (millions of constant 2018 United States dollars)"
+medida3= "Carbon dioxide emissions from fuel combustion (millions of tonnes)"
+medidas4 = c("Proportion of population covered by at least a 3G mobile network ()","Proportion of population covered by at least a 2G mobile network ()","Proportion of population covered by at least a 4G mobile network ()")
+
+
+goal_9_1 <- goal_9 %>%
+            filter(Measure == medida,
+                   !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', CountryOrArea)) %>%
+  complete(Year) %>%  
+  group_by(CountryOrArea,Year) %>% 
+  arrange(desc(Year,CountryOrArea)) %>% 
+  select(CountryOrArea,Year,AverageValue)
+
+names(goal_9_1)[1] = "Country"
+names(goal_9_1)[3] = "Manufacturing_value_added_per_capita_in_dollars"
+```
+Medida 2
+```{r}
+goal_9_2 <- goal_9 %>%
+            filter(Measure == medida2,
+                   !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', CountryOrArea)) %>%
+  complete(Year) %>%  
+  group_by(CountryOrArea,Year) %>% 
+  arrange(desc(Year,CountryOrArea)) %>% 
+  select(CountryOrArea,Year,AverageValue)
+
+names(goal_9_2)[1] = "Country"
+names(goal_9_2)[3] = "Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars"
+
+```
+Medida 3
+```{r}
+goal_9_3 <- goal_9 %>%
+            filter(Measure == medida3,
+                   !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', CountryOrArea)) %>%
+  complete(Year) %>%  
+  group_by(CountryOrArea,Year) %>% 
+  arrange(desc(CountryOrArea)) %>% 
+  select(CountryOrArea,Year,AverageValue)
+
+names(goal_9_3)[1] = "Country"
+names(goal_9_3)[3] = "Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes"
+
+
+```
+Medida 4
+```{r}
+goal_9_4 <- goal_9 %>%
+  select(Target,Indicator,Measure,CountryOrArea,Year,AverageValue,Units) %>%
+  filter(Measure %in% c("Proportion of population covered by at least a 3G mobile network ()","Proportion of population covered by at least a 2G mobile network ()","Proportion of population covered by at least a 4G mobile network ()"),
+         !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', CountryOrArea)) %>% 
+  complete(Year) %>%  
+  group_by(CountryOrArea,Year) %>% 
+  arrange(desc(Year,CountryOrArea)) %>%
+  summarize(Mean_population_covered_by_mobile_network=mean(AverageValue))
+
+names(goal_9_4)[1] = "Country"
+
+
+```
+
+Hacemos una join de las tablas para crear una sola y aplicar una correlación
+```{r}
+goal_9_regresion <- goal_9_1 %>%
+  left_join(goal_9_2, by = c('Country','Year')) %>% 
+  left_join(goal_9_3, by = c('Country','Year')) %>%
+  left_join(goal_9_4, by = c('Country','Year'))
+
+```
+Como podemos observar hay muchos valores incompletos, borraremos las filas que contengan valores incompletos y haremos el estudio con todos los años.
+```{r}
+goal_9_regresion_all_years <- goal_9_regresion %>%
+  ungroup() %>%
+  select(-Year,-Country) %>% 
+  filter(!is.na(Manufacturing_value_added_per_capita_in_dollars),
+         !is.na(Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars),
+         !is.na(Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes),
+         !is.na(Mean_population_covered_by_mobile_network))
+``` 
+2. MATRIZ DE CORRELACIÓN
+
+Probaremos con tres íncides y justificaremos la respuesta:
+
+2.1. ÍNDICE DE PEARSON
+
+Para este tipo de correlación es ideal eliminar los outliers, pero nosotros los contenemos en nuestro dataset y eliminarlos supondría perder muchos datos por cada fila. Por lo tanto sabemos que este índice no es el más adecuado para nuestro experimento.
+```{r}
+corr <- round(cor(goal_9_regresion_all_years),1)
+chart.Correlation(corr, histogram = TRUE, method = "pearson",pch = 20)
+```
+```{r}
+cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_all_years$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,method="pearson",exact=FALSE)
+```
+```{r}
+cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_all_years$Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars,method="pearson",exact=FALSE)
+```
+```{r}
+cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_all_years$Manufacturing_value_added_per_capita_in_dollars,method="pearson",exact=FALSE)
+```
+
+2.2 SPEARMAN
+
+```{r}
+corr <- round(cor(goal_9_regresion_all_years),1)
+chart.Correlation(corr, histogram=TRUE, method = c("spearman"), pch="+")
+```
+```{r}
+cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_all_years$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,method="spearman",exact=FALSE)
+```
+```{r}
+cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_all_years$Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars,method="spearman",exact=FALSE)
+```
+```{r}
+cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_all_years$Manufacturing_value_added_per_capita_in_dollars,method="pearson",exact=FALSE)
+```
+
+
+2.3 KENDALL
+```{r}
+corr <- round(cor(goal_9_regresion_all_years),1)
+corrplot(corr, method="number",type="upper")
+chart.Correlation(corr, histogram=TRUE, method = c("kendall"), pch="+")
+```
+```{r}
+cor.test(goal_9_regresion_2017$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_2017$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,method="kendall",exact=FALSE)
+```
+
+
+Probaremos a realizar el mismo estudio con un solo año, para ello haremos un estudio de los valores perdidos, y obtendremos el año con menor porcentaje, de este modo realizaremos la correlación únicamente con dicho año. A fin de obtener un resultado más preciso.
+```{r}
+year_filter <- goal_9_regresion %>% 
+  ungroup() %>% 
+  distinct(Year)
+year_list <- year_filter$Year
+
+for (i in 1:20){
+    year <- year_list[i]
+
+    data <- goal_9_regresion %>% 
+      group_by(Year) %>% 
+      filter(Year == year) %>%
+      ungroup() %>%
+      select(-Year,-Country)
+    
+    meanNA <- apply(is.na(data), 2, mean)
+    calc <-  c(as.character(year),meanNA)  
+    print(calc)
+    flush.console()
+}
+
+
+```
+Como podemos observar tenemos cerca de un 30% al menos para alguna "medida" de valores perdidos para cualquier año, pero el año más actual con mejores datos es el 2017.
+```{r}
+
+goal_9_regresion_2017 <- goal_9_regresion %>% 
+  filter(!is.na(Manufacturing_value_added_per_capita_in_dollars),
+         !is.na(Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars),
+         !is.na(Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes),
+         !is.na(Mean_population_covered_by_mobile_network),
+         Year == 2017) %>% 
+  ungroup() %>%
+  select(-Year,-Country)
+
+
+corr <- round(cor(goal_9_regresion_2017),1)
+chart.Correlation(corr, histogram=TRUE, method = c("spearman"), pch=19)
+```
+El índice de Spearman es el que mejor se ajusta a nuestros datos ya que tenemos un p-valor aceptable, por debajo de 0,05 y rho aunque no sea muy próxima 1 es mejor que en otros casos.
+
+3. CONCLUSIONES
+
+¿Aumenta la contaminación en proporción a la inversión en infraestructuras de cada país? 
+Sí, la tendencia mundial indica que cuanto más se invierte. Mayor....
+
+DUDAS: Cuando tenemos una correlación negativa suponemos que las dos variables son descendientes y viceversa?
+
+DUDAS: Cómo saber que índice de correlación debemos usar? He explorado 3 pero tengo dudas...
+```{r}
+
+```
+

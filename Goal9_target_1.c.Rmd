@@ -1,0 +1,63 @@
+---
+title: "Goal9_target_1.c"
+author: "Julia Palacios"
+date: "21/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r libraries, eval=TRUE, include=FALSE}
+install.packages("viridisLite")
+library(tidyverse)
+library(ggplot2)
+library(forcats)
+library(hrbrthemes)
+library(viridis)
+```
+
+¿Cual es la proporción de población con acceso a tecnología móvil?
+
+1. LECTURA DE DATOS
+
+```{r cars}
+goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
+```
+2. TRATAMIENTO DE DATOS
+
+En este apartado ordenaremos los datos con el fin de cumplan los criterios de 'tidy data'.
+En primer lugar:
+- Renombramos columnas cuyos nombres no son cómodos a la hora de trabajar
+- Convertimos a variables númericas las que son
+- Seleccionamos las columnas que nos interesan y filtramos
+- Complete(), para completar los años en los que nos faltan datos
+- Utilizamos la función gather() para reordenar la tabla
+```{r}
+names(goal9)[2] = "Target"
+names(goal9)[3] = "Indicator"
+names(goal9)[7] = "AverageValue"
+names(goal9)[5] = "CountryOrArea"
+
+goal9$AverageValue <- as.numeric(as.character(goal9$AverageValue))
+
+mobile_cov <- goal9 %>%
+  select(Target,Indicator,Measure,CountryOrArea,Year,AverageValue,Units) %>%
+  filter(Measure %in% c("Proportion of population covered by at least a 3G mobile network ()","Proportion of population covered by at least a 2G mobile network ()","Proportion of population covered by at least a 4G mobile network ()")) %>% 
+  complete(Year) %>%  
+  group_by(CountryOrArea) %>% 
+  arrange(desc(AverageValue)) 
+
+mobile_cov_global <- mobile_cov %>% 
+  group_by(Year,Measure) %>%
+    summarize(mean_mobile=mean(AverageValue))
+#Calcular la media de todos los paises para cada año
+```
+
+Vamos a realizar una visualización global tanto de 2G, 3G como 4G en el mundo.
+
+```{r pressure, echo=FALSE}
+  ggplot(mobile_cov_global, aes( x = Year, y=mean_mobile, color = Measure)) + geom_point() 
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
