@@ -23,10 +23,10 @@ year <- 0
 goal_9_regresion <- 0
 aux <-0
 
-indicatir <- '9.2.1'
+indicator <- '9.2.1'
 
 goal_9 <- data_9 %>%
-            filter(stringr::str_detect(Indicator.Name, indicatir)) %>%
+            filter(stringr::str_detect(Indicator.Name, indicator)) %>%
               distinct(Country.or.Area, .keep_all = TRUE)
 
 country_list <- goal_9$Country.or.Area
@@ -53,15 +53,11 @@ goal_9_measure_as_list <- data_9 %>%
 # }
 
 
-# measures <- split(goal_9_measure_as_list, 0)
-# years <- split(goal_9_years_as_list, 0)
-
 headers <- c()
 country_value_list <- c()
 country_value_list_aux <- c()
 for(m in 1:nrow(goal_9_measure_as_list)){
   for (y in 1:nrow(goal_9_years_as_list)) {
-    # print(paste(goal_9_measure_as_list[m, ], goal_9_years_as_list[y, ], sep="__"))
     name_column <- paste(goal_9_measure_as_list[m, ], goal_9_years_as_list[y, ], sep="__")
     headers <- c(headers, name_column)
     for (c in country_list) {
@@ -82,9 +78,6 @@ for(m in 1:nrow(goal_9_measure_as_list)){
 #create data frame with 0 rows and 5 columns
 df <- data.frame(matrix(ncol = length(headers), nrow = 0))
 
-#provide column names
-colnames(df) <- headers
-
 #view structure of the data frame
 # str(df)
 
@@ -94,5 +87,14 @@ colnames(df) <- headers
 
 ```{r}
 df <- data.frame(country_value_list)
+#provide column names
 colnames(df) <- headers
 df$country <- country_list
+write.csv(df,"goal9_measure_year.csv", row.names = TRUE)
+```
+
+
+```{r}
+
+
+```
