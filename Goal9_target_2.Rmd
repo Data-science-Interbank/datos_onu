@@ -1,0 +1,41 @@
+---
+title: "Goal9_target_2"
+author: "Julia Palacios"
+date: "4/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
+
+```
+## Lectura de datos
+TARGET 9.2 - Promote inclusive and sustainable industrialization and, by 2030, significantly raise industry's share of employment and gross domestic product, in line with national circumstances, and double its share in least developed countries
+
+1. LECTURA DE DATOS
+
+```{r}
+goal9$AverageValue <- as.numeric(as.character(goal9$AverageValue))
+
+goal9PIB <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>%
+  filter(Measure=="Manufacturing value added per capita (constant 2015 United States dollars)",
+         CountryOrArea %in% c("Africa", "Oceania", "Americas","Europe","Asia")) %>% 
+  group_by(Year) %>% 
+  complete(Year, AverageValue) 
+
+goal9PIB %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_point() + 
+  geom_smooth(method="lm", size=1.5) + 
+  theme (text = element_text(size=8)) + 
+    ggtitle ("Manufacturing value added per capita") + 
+    theme (plot.title = element_text(size=rel(2), 
+                                  vjust=2, 
+                                  face="bold", 
+                                  color="black", 
+                                  lineheight=1.5)) +
+    labs(x = "Year",y = "Average Value (CON_USD)") + 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1.5))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1.5))) 
+```
+África es el continente más perjudicado y no parece ir mejorando, en cambio observamos como Asia si lo hace y Oceanía empeora.

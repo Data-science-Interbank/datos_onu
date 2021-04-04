@@ -1,0 +1,89 @@
+---
+title: "EmissionsReport"
+author: "Julia Palacios"
+date: "3/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, eval=TRUE, include=FALSE}
+install.packages("viridisLite")
+library(tidyverse)
+library(ggplot2)
+library(forcats)
+library(hrbrthemes)
+library(viridis)
+
+```
+GOALS
+```{r data}
+goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
+```
+
+1. TRATAMIENTO DE DATOS
+
+En este apartado ordenaremos los datos con el fin de cumplan los criterios de 'tidy data'.
+En primer lugar:
+- Renombramos columnas cuyos nombres no son cómodos a la hora de trabajar
+- Convertimos a variables númericas las que son
+
+```{r pressure, echo=FALSE}
+
+names(goal9)[7] = "AverageValue"
+names(goal9)[5] = "CountryOrArea"
+
+goal9$AverageValue <- as.numeric(as.character(goal9$AverageValue))
+
+goal9tonnes <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>%
+  filter(Measure=="Carbon dioxide emissions from fuel combustion (millions of tonnes)",
+         CountryOrArea %in% c("Africa", "Oceania", "Americas","Europe","Asia")) %>% 
+  group_by(Year) %>% 
+  complete(Year, AverageValue) 
+
+goal9tonnes %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_point() + 
+  geom_smooth(method="lm", size=1.5) + 
+  theme (text = element_text(size=8)) + 
+    ggtitle ("CO2 Emissions") +
+    theme (plot.title = element_text(size=rel(2), 
+                                  vjust=2, 
+                                  face="bold", 
+                                  color="black", 
+                                  lineheight=1.5)) + 
+    labs(x = "Year",y = "Average Value (millions of tonnes)") + 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1.5))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1.5))) 
+
+```
+Asia es el continente contaminante por excelencia, además tiene una tendencia al alza al contrario del resto de continentes que parecen reducir sus emisiones progresivamente.
+
+Utilizamos otro indicador: Emisiones de CO2 por unidad de producto interior bruto (kg de CO2 por la constante del dolar en EEUU en 2010). Es un indicador de la contaminación producida en relación al valor del mercado y toda la producción de cada continente.
+```{r}
+goal9GDP <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>% 
+  filter(Measure=="Carbon dioxide emissions per unit of GDP (kilogrammes of CO2 per constant 2010 United States dollars)", 
+         CountryOrArea %in% c("Europe", "Oceania","Africa","Asia","Americas")) %>% 
+         group_by(Year) 
+
+
+goal9GDP %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + 
+  geom_point()+ 
+  geom_smooth(method="lm", size=1.5) + 
+  theme (text = element_text(size=8)) + 
+    ggtitle ("CO2 Emissions per unit od GDP") + 
+    theme (plot.title = element_text(size=rel(2), 
+                                  vjust=2, 
+                                  face="bold", 
+                                  color="black", 
+                                  lineheight=1.5)) + 
+    labs(x = "Year",y = "Average Value (kg of CO2)") + 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1.5))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1.5)))
+
+```
+Todos los continentes están reduciendo sus emisiones de CO2 respecto al PIB de cada continente, Europa, América y Oceanía lo hacen de manera proporcional.
+
+Asia es el continente que más despacio disminuye sus emisiones y África aún siendo un continente en desarrollo y teniendo bajos niveles de emisión comparado con el resto, también disminuyen.

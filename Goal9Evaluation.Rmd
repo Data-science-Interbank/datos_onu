@@ -119,7 +119,7 @@ goal_9_regresion_all_years <- goal_9_regresion %>%
 ``` 
 2. MATRIZ DE CORRELACIÓN
 
-Probaremos con tres íncides y justificaremos la respuesta:
+Probaremos con tres índices y justificaremos la respuesta:
 
 2.1. ÍNDICE DE PEARSON
 
@@ -157,14 +157,13 @@ cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
 ```
 ```{r}
 cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
-         goal_9_regresion_all_years$Manufacturing_value_added_per_capita_in_dollars,method="pearson",exact=FALSE)
+         goal_9_regresion_all_years$Manufacturing_value_added_per_capita_in_dollars,method="spearman",exact=FALSE)
 ```
 
 
 2.3 KENDALL
 ```{r}
 corr <- round(cor(goal_9_regresion_all_years),1)
-corrplot(corr, method="number",type="upper")
 chart.Correlation(corr, histogram=TRUE, method = c("kendall"), pch="+")
 ```
 ```{r}
@@ -198,32 +197,36 @@ for (i in 1:20){
 
 ```
 Como podemos observar tenemos cerca de un 30% al menos para alguna "medida" de valores perdidos para cualquier año, pero el año más actual con mejores datos es el 2017.
+
+Vamos a realizar un estudio para un país en desarrollo en concreto: Mozambique
 ```{r}
 
-goal_9_regresion_2017 <- goal_9_regresion %>% 
+goal_9_regresion_mozambique <- goal_9_regresion %>% 
   filter(!is.na(Manufacturing_value_added_per_capita_in_dollars),
          !is.na(Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars),
          !is.na(Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes),
          !is.na(Mean_population_covered_by_mobile_network),
-         Year == 2017) %>% 
+         Country == "Mozambique") %>% 
   ungroup() %>%
   select(-Year,-Country)
 
 
-corr <- round(cor(goal_9_regresion_2017),1)
-chart.Correlation(corr, histogram=TRUE, method = c("spearman"), pch=19)
+corr <- round(cor(goal_9_regresion_mozambique),1)
+chart.Correlation(corr, histogram=TRUE, method = c("pearson"), pch=19)
 ```
-El índice de Spearman es el que mejor se ajusta a nuestros datos ya que tenemos un p-valor aceptable, por debajo de 0,05 y rho aunque no sea muy próxima 1 es mejor que en otros casos.
 
 3. CONCLUSIONES
 
-¿Aumenta la contaminación en proporción a la inversión en infraestructuras de cada país? 
-Sí, la tendencia mundial indica que cuanto más se invierte. Mayor....
+En el caso de Mozambique, podemos afirmar:
+- Según crece el PIB menor es el flujo económico para infraestructuras ¿?
+- Según crece el PIB mayor son las emisiones de C02
+- Según crece el PIB más personas están cubiertas por red móvil
+- Cuanto menor es el flujo económico para infraestructuras mayores son las emisiones de CO2
+- Cuanto menor es el flujo económico para infraestructuras más personas están cubiertas por red móvil
+- Cuanto mayores son las emisiones de C02 más personas están cubiertas por red móvil
+
+PREGUNTAR POR LOS RESULTADOS GLOBALES Y SI TIENEN SENTIDO...
 
 DUDAS: Cuando tenemos una correlación negativa suponemos que las dos variables son descendientes y viceversa?
 
 DUDAS: Cómo saber que índice de correlación debemos usar? He explorado 3 pero tengo dudas...
-```{r}
-
-```
-
