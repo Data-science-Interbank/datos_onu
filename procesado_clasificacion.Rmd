@@ -123,17 +123,48 @@ for (index_measure in 1:nrow(goal_9_measure_as_list)) {
 ```{r}
 
 hdi <- read.csv('./data/HDI.csv', row.names = "country")
-hdi_column <- list()
+hdi_column <- c()
 for (row_num in 1:nrow(goal_9_measure_all_data)) {
   row_country <- goal_9_measure_all_data[row_num,"Country"]
   row_year <- paste("X", goal_9_measure_all_data[row_num,"Year"], sep="")
-  hdi_value <- as.double(hdi[toString(row_country), toString(row_year)])
+  hdi_value <- hdi[toString(row_country), toString(row_year)]
   hdi_column <- c(hdi_column, hdi_value)
 }
 ```
 
 ```{r}
 goal_9_measure_all_data$HDI <- hdi_column
+df_hdi <- data.frame(goal_9_measure_all_data)
+write.csv(df_hdi,"data/goal_9_measure_all_data.csv", row.names = FALSE)
 ```
 
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(broom)
+library(ggpubr)
+```
+
+```{r}
+df_hdi <- select(df_hdi, -Year)
+country.hdi.lm <- lm(HDI ~ Country, data = df_hdi)
+summary(country.hdi.lm)
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(country.hdi.lm)
+par(mfrow=c(1,1))
+```
+
+```{r}
+country.hdi.graph<-ggplot(df_hdi, aes(x=Country, y=HDI))+
+                     geom_point()
+
+country.hdi.graph <- country.hdi.graph + geom_smooth(method="lm", col="black")
+country.hdi.graph <- country.hdi.graph + stat_regline_equation(label.x = 3, label.y = 7)
+
+country.hdi.graph
+```
 
