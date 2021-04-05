@@ -20,7 +20,7 @@ data_9
 ```{r}
 country <- 0
 year <- 0
-goal_9_regresion <- 0
+goal_9_measure_all_data <- 0
 aux <-0
 
 indicator <- '9.2.1'
@@ -90,11 +90,50 @@ df <- data.frame(country_value_list)
 #provide column names
 colnames(df) <- headers
 df$country <- country_list
-write.csv(df,"goal9_measure_year.csv", row.names = TRUE)
+write.csv(df,"data/goal9_measure_year.csv", row.names = TRUE)
 ```
 
 
 ```{r}
+# data <- read.csv2("data/goal9_measure_year.csv")
+measures_data <- list()
+for (index_measure in 1:nrow(goal_9_measure_as_list)) {
 
-
+  goal_measure_data <- goal_9 %>%
+            filter(Measure == goal_9_measure_as_list[index_measure,],
+                   !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', CountryOrArea)) %>%
+  complete(Year) %>%  
+  group_by(CountryOrArea,Year) %>% 
+  arrange(desc(Year,CountryOrArea)) %>% 
+  select(CountryOrArea,Year,AverageValue)
+  
+  names(goal_measure_data)[1] = "Country"
+  names(goal_measure_data)[3] = goal_9_measure_as_list[index_measure,]
+  
+  measures_data <- c(measures_data, goal_measure_data)
+  
+  if (index_measure == 1) {
+    goal_9_measure_all_data <- goal_measure_data
+  } else {
+    goal_9_measure_all_data<-merge(x=goal_9_measure_all_data,y=goal_measure_data,by=c('Country','Year'),all.x=TRUE)
+  }
+}
 ```
+
+```{r}
+
+hdi <- read.csv('./data/HDI.csv', row.names = "country")
+hdi_column <- list()
+for (row_num in 1:nrow(goal_9_measure_all_data)) {
+  row_country <- goal_9_measure_all_data[row_num,"Country"]
+  row_year <- paste("X", goal_9_measure_all_data[row_num,"Year"], sep="")
+  hdi_value <- as.double(hdi[toString(row_country), toString(row_year)])
+  hdi_column <- c(hdi_column, hdi_value)
+}
+```
+
+```{r}
+goal_9_measure_all_data$HDI <- hdi_column
+```
+
+
