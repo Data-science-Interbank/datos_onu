@@ -1,0 +1,21 @@
+
+### Intrucciones ####
+
+Para generar el ejecutable hay que ejecutar el comando "pyinstaller generator.spec". En la carpeta dist estará nuestro ejecutable
+Antes de ejecutarlo por primera vez tambien tendremos que volcar el contenido de la carpeta "Ficheros dist"
+
+ --- Windows ---
+
+Ejecutar "ejecutable.exe"
+Elegir parámetros (si los datos son .xlsx tarda un poco, si elegimos las opciones regresión y suavizado tambien afectan al rendimiento)
+Elegir measure (Hay que tener cuidado si elegimos measures duplicadas para un mismo pais y año)
+*Mientras se genera podemos ir viendo las imagenes generadas en la carpeta plots*
+-> Si queremos solo las imagenes las podemos encontrar en la carpeta plots
+-> Si queremos el gif generado puede encontrarse en la raiz
+
+--- Mac ---
+--- Linux ---
+
+Nota: Si aparece un error de cuerpos celestes incompatibles cambia la proyección, es un bug con la versión de pyproj
+Nota2: Si aparece un error de indexado es por lo comentado de las measure
+Nota3: Si se quiere utilizar otro dataset hay que meterlo en la carpeta data con almenos 3 columnas: "Year", "Coutry or Area", "Measure", y no puede haber ninguna fila con los mismos valores en las 3 columnas
