@@ -1,6 +1,6 @@
 ---
 title: "Goal9_target_2"
-author: "Julia Palacios"
+author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
 date: "4/4/2021"
 output: html_document
 ---
@@ -16,6 +16,8 @@ TARGET 9.2 - Promote inclusive and sustainable industrialization and, by 2030, s
 1. LECTURA DE DATOS
 
 ```{r}
+names(goal9)[7] = "AverageValue"
+names(goal9)[5] = "CountryOrArea"
 goal9$AverageValue <- as.numeric(as.character(goal9$AverageValue))
 
 goal9PIB <- goal9 %>%

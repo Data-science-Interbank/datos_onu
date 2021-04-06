@@ -1,6 +1,6 @@
 ---
 title: "EmissionsReport"
-author: "Julia Palacios"
+author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
 date: "3/3/2021"
 output: html_document
 ---

@@ -16,19 +16,17 @@ TARGET 9.a - Facilitate sustainable and resilient infrastructure development in 
 
 ¿Cómo se está facilitando el desarrollo de infraestructura sostenible y resiliente en los países en desarrollo mediante un mayor apoyo financiero ?
 
-1. LECTURA DE DATOS
+#1. LECTURA DE DATOS
 ```{r pressure, echo=FALSE}
 goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
 ```
-2. TRATAMIENTO DE DATOS
+#2. TRATAMIENTO DE DATOS
 
 En este apartado ordenaremos los datos con el fin de cumplan los criterios de 'tidy data'.
 En primer lugar:
 - Renombramos columnas cuyos nombres no son cómodos a la hora de trabajar
 - Convertimos a variables númericas las que son
 - Seleccionamos las columnas que nos interesan y filtramos
-- Complete(), para completar los años en los que nos faltan datos
-- Utilizamos la función gather() para reordenar la tabla
 ```{r}
 names(goal9)[2] = "Target"
 names(goal9)[3] = "Indicator"
@@ -60,7 +58,7 @@ quantiles_var
 ```
 Vamos a crear un ranking de Países
 
-3. ¿CUALES SON LOS PAÍSES CON MEJORES VALORES DE MEDIA PARA 2018?
+#3. ¿CUALES SON LOS PAÍSES CON MEJORES VALORES DE MEDIA PARA 2018?
 ```{r}
 data_rank <- goal9t %>% 
   arrange(desc(AverageValue)) %>%
@@ -93,7 +91,7 @@ data_rank_top %>% ggplot(aes(x=Year,y = AverageValue, color=CountryOrArea)) +
 Como se puede observar ha habido un aumento considerable de la inversión, sobretodo en las regiones en desarrollo. Tal y como se pretendía en este objetivo.
 
 
-4. ¿CUALES SON LOS PAÍSES CON PEORES VALORES DE MEDIA PARA 2018?
+#4. ¿CUALES SON LOS PAÍSES CON PEORES VALORES DE MEDIA PARA 2018?
 
 Como podemos observar el 25% de los países tiene un valor medio por debajo de 10.405 CON_USD
 
@@ -124,9 +122,9 @@ data_rank_tail %>% ggplot(aes(x=Year,y = AverageValue, color=CountryOrArea)) + g
 
 Estos países describen un comportamiento de negativo
 
-5. ¿CUAL ES LA TENDENCIA MUNDIAL?
+#5. ¿CUAL ES LA TENDENCIA MUNDIAL?
 
-  5.1 PREPROCESAMIENTO
+##5.1 PREPROCESAMIENTO
 
 ¿Están los datos balancedos por años?
 
@@ -170,6 +168,9 @@ low <- Q[1]-1.5*iqr # Rango inferior
 
 # filtrar valores dentro del rango
 goal9r_deleted<- goal9r %>% filter(AverageValue > low & AverageValue < up)
+```
+## 5.2 VISUALIZACIÓN
+```{r}
 
 ggplot(goal9r_deleted, aes(x=Year, y=AverageValue)) + 
   geom_point() + geom_smooth(method="lm", size=1.5) +
