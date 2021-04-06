@@ -10,20 +10,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r libraries, eval=TRUE, include=FALSE}
-install.packages("viridisLite")
 library(tidyverse)
 library(ggplot2)
 library(forcats)
-library(hrbrthemes)
-library(viridis)
-
 ```
 GOALS
 ```{r data}
 goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
 ```
 
-1. TRATAMIENTO DE DATOS
+#1. TRATAMIENTO DE DATOS
 
 En este apartado ordenaremos los datos con el fin de cumplan los criterios de 'tidy data'.
 En primer lugar:
@@ -43,6 +39,10 @@ goal9tonnes <- goal9 %>%
          CountryOrArea %in% c("Africa", "Oceania", "Americas","Europe","Asia")) %>% 
   group_by(Year) %>% 
   complete(Year, AverageValue) 
+```
+#2. VISUALIZACIÓN
+##2.1 EMISIONES POR CONTINENTE EN MILLONES DE TONELADAS
+```{r}
 
 goal9tonnes %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_point() + 
   geom_smooth(method="lm", size=1.5) + 
@@ -58,9 +58,13 @@ goal9tonnes %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_
     theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1.5))) 
 
 ```
+##2.1 EMISIONES POR CONTINENTE EN FUNCIÓN DEL PIB
+
+
 Asia es el continente contaminante por excelencia, además tiene una tendencia al alza al contrario del resto de continentes que parecen reducir sus emisiones progresivamente.
 
 Utilizamos otro indicador: Emisiones de CO2 por unidad de producto interior bruto (kg de CO2 por la constante del dolar en EEUU en 2010). Es un indicador de la contaminación producida en relación al valor del mercado y toda la producción de cada continente.
+
 ```{r}
 goal9GDP <- goal9 %>%
   select(Measure,CountryOrArea,Year,AverageValue) %>% 

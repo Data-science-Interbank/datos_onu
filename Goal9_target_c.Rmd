@@ -55,7 +55,7 @@ mobile_cov_global <- mobile_cov %>%
 
 #3. VISUALIZACIÓN
 
-##3.1 SITUACIÓN MUNDIAL
+##3.1 VISUALIZACIÓN DE LA PROPORCION DE POBLACIÓN MUNDIAL CUBIERTA POR RED MÓVIL
 
 Vamos a realizar una visualización global tanto de 2G, 3G como 4G en el mundo.
 

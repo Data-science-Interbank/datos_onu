@@ -10,10 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
 
 ```
-## Lectura de datos
 TARGET 9.2 - Promote inclusive and sustainable industrialization and, by 2030, significantly raise industry's share of employment and gross domestic product, in line with national circumstances, and double its share in least developed countries
 
-1. LECTURA DE DATOS
+#1. LECTURA DE DATOS
 
 ```{r}
 names(goal9)[7] = "AverageValue"
@@ -26,7 +25,9 @@ goal9PIB <- goal9 %>%
          CountryOrArea %in% c("Africa", "Oceania", "Americas","Europe","Asia")) %>% 
   group_by(Year) %>% 
   complete(Year, AverageValue) 
-
+```
+#2. VISUALIZACIÓN DEL PIB POR CONTINENTE
+```{r}
 goal9PIB %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_point() + 
   geom_smooth(method="lm", size=1.5) + 
   theme (text = element_text(size=8)) + 
