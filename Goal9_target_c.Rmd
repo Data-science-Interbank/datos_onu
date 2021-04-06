@@ -17,12 +17,12 @@ TARGET 9.c - Significantly increase access to information and communications tec
 
 ¿Cual es la proporción de población con acceso a tecnología móvil?
 
-1. LECTURA DE DATOS
+#1. LECTURA DE DATOS
 
 ```{r cars}
 goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
 ```
-2. TRATAMIENTO DE DATOS
+#2. TRATAMIENTO DE DATOS
 
 En este apartado ordenaremos los datos con el fin de cumplan los criterios de 'tidy data'.
 En primer lugar:
@@ -53,9 +53,9 @@ mobile_cov_global <- mobile_cov %>%
 #Calcular la media de todos los paises para cada año
 ```
 
-3. VISUALIZACIÓN
+#3. VISUALIZACIÓN
 
-3.1 SITUACIÓN MUNDIAL
+##3.1 VISUALIZACIÓN DE LA PROPORCION DE POBLACIÓN MUNDIAL CUBIERTA POR RED MÓVIL
 
 Vamos a realizar una visualización global tanto de 2G, 3G como 4G en el mundo.
 

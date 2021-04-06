@@ -24,7 +24,7 @@ names(goal_9)[5] = "CountryOrArea"
 goal_9$AverageValue <- as.numeric(as.character(goal_9$AverageValue))
 
 ```
-1. PLANTEAMIENTO DEL EXPERIMENTO
+#1. PLANTEAMIENTO DEL EXPERIMENTO
 
 Vamos a estudiar la correlación entre cuatro medidas que tenemos para evaluar la consecución del OBJETIVO 9: Construir infraestructura resiliente, promover la industrialización inclusiva y sostenible y fomentar la innovación. 
 
@@ -117,11 +117,11 @@ goal_9_regresion_all_years <- goal_9_regresion %>%
          !is.na(Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes),
          !is.na(Mean_population_covered_by_mobile_network))
 ``` 
-2. MATRIZ DE CORRELACIÓN
+#2. MATRIZ DE CORRELACIÓN
 
 Probaremos con tres índices y justificaremos la respuesta:
 
-2.1. ÍNDICE DE PEARSON
+##2.1. ÍNDICE DE PEARSON
 
 Para este tipo de correlación es ideal eliminar los outliers, pero nosotros los contenemos en nuestro dataset y eliminarlos supondría perder muchos datos por cada fila. Por lo tanto sabemos que este índice no es el más adecuado para nuestro experimento.
 ```{r}
@@ -141,7 +141,7 @@ cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
          goal_9_regresion_all_years$Manufacturing_value_added_per_capita_in_dollars,method="pearson",exact=FALSE)
 ```
 
-2.2 SPEARMAN
+##2.2 ÍNDICE DE SPEARMAN
 
 ```{r}
 corr <- round(cor(goal_9_regresion_all_years),1)
@@ -161,17 +161,16 @@ cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
 ```
 
 
-2.3 KENDALL
+##2.3 ÍNDICE DE KENDALL
 ```{r}
 corr <- round(cor(goal_9_regresion_all_years),1)
 chart.Correlation(corr, histogram=TRUE, method = c("kendall"), pch="+")
 ```
 ```{r}
-cor.test(goal_9_regresion_2017$Mean_population_covered_by_mobile_network,
-         goal_9_regresion_2017$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,method="kendall",exact=FALSE)
+cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_all_years$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,method="kendall",exact=FALSE)
 ```
-
-
+##2.4 ESTUDIO DE UN AÑO EN CONCRETO
 Probaremos a realizar el mismo estudio con un solo año, para ello haremos un estudio de los valores perdidos, y obtendremos el año con menor porcentaje, de este modo realizaremos la correlación únicamente con dicho año. A fin de obtener un resultado más preciso.
 ```{r}
 year_filter <- goal_9_regresion %>% 
@@ -188,16 +187,46 @@ for (i in 1:20){
       ungroup() %>%
       select(-Year,-Country)
     
-    meanNA <- apply(is.na(data), 2, mean)
-    calc <-  c(as.character(year),meanNA)  
-    print(calc)
+    print(year)
+    print(colMeans(is.na(data)))
     flush.console()
+    if(i==1){
+    calc <- data.frame(colMeans(is.na(data))*100)
+    }else{
+      calc <- calc %>% data.frame(colMeans(is.na(data))*100)
+    }
 }
+    colnames(calc) <- year_list
+    calct <- data.frame(t(calc))
+    
+   calct <- calct %>% 
+      summarise(meanNAValues = (rowMeans(calct)))
+   calct <- cbind(calct,year_list) 
+   calct %>% arrange(meanNAValues)
+
+    goal_9_regresion_2015 <- goal_9_regresion %>% 
+  filter(!is.na(Manufacturing_value_added_per_capita_in_dollars),
+         !is.na(Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars),
+         !is.na(Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes),
+         !is.na(Mean_population_covered_by_mobile_network),
+         Year == 2015) %>% 
+  ungroup() %>%
+  select(-Year,-Country)
 
 
+corr <- round(cor(goal_9_regresion_2015),1)
+chart.Correlation(corr, histogram=TRUE, method = c("spearman"), pch=19)
 ```
-Como podemos observar tenemos cerca de un 30% al menos para alguna "medida" de valores perdidos para cualquier año, pero el año más actual con mejores datos es el 2017.
+```{r}
+cor.test(goal_9_regresion_2015$Mean_population_covered_by_mobile_network,
+         goal_9_regresion_2015$Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars,method="spearman",exact=FALSE)
+```
 
+Como podemos observar tenemos cerca de un 18% al menos para alguna "medida" de valores perdidos para 2015, pero el año más actual con mejores datos.
+
+Nos aparece un p-valor muy alto para la medida en el que da un 1 en la correlación.
+
+## 2.5 ESTUDIO DE UN PAÍS EN CONCRETO
 Vamos a realizar un estudio para un país en desarrollo en concreto: Mozambique
 ```{r}
 
