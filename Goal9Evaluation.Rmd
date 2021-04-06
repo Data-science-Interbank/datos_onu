@@ -12,7 +12,7 @@ library(tidyverse)
 library(corrplot)
 library(PerformanceAnalytics)
 ```
-0. LECTURA DE DATOS
+#0. LECTURA DE DATOS
 
 ```{r lectura datos}
 goal_9 <- read_delim(file = "data/goal_9.csv", delim = ";")

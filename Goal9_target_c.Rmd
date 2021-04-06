@@ -1,6 +1,6 @@
 ---
-title: "Goal9_target_1.c"
-author: "Julia Palacios"
+title: "Proporción de población cubierta por red móvil"
+author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
 date: "21/3/2021"
 output: html_document
 ---

@@ -1,20 +1,27 @@
 ---
-title: "Goal9_target_2"
+title: "Valor agregado de manufactura per cápita"
 author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
 date: "4/4/2021"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
 
+```
+```{r libraries, eval=TRUE, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(forcats)
 ```
 TARGET 9.2 - Promote inclusive and sustainable industrialization and, by 2030, significantly raise industry's share of employment and gross domestic product, in line with national circumstances, and double its share in least developed countries
 
 #1. LECTURA DE DATOS
 
 ```{r}
+goal9 <- read_delim(file = "data/goal_9.csv", delim = ";")
 names(goal9)[7] = "AverageValue"
 names(goal9)[5] = "CountryOrArea"
 goal9$AverageValue <- as.numeric(as.character(goal9$AverageValue))

@@ -1,5 +1,5 @@
 ---
-title: "EmissionsReport"
+title: "Emisiones de CO2"
 author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
 date: "3/3/2021"
 output: html_document
