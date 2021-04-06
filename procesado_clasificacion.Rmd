@@ -1,9 +1,13 @@
 ---
 title: "procesado_clasificacion"
-author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
+author: "Antonio Martínez"
 date: "30/3/2021"
 output: html_document
 ---
+
+# Preprocesamiento de datos
+
+En esta parte del trabajo nos vamos a centrar en el preprocesamiento de los datos para obtener dos datasets a partir de los datos contenidos en el objetivo 9 (Goal 9) de los indicadores de la ONU.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -11,11 +15,32 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
+Primero leemos el dataset tal cual se ha obtenido de la API de la ONU.
 
 ```{r lectura datos}
 data_9 <- read.csv2('./data/goal_9.csv')
 data_9
 ```
+
+Vamos a realizar un estudio sobre los datos para comprobar si están balanceados
+
+```{r}
+data_9 <- data_9 %>%
+  complete(Year, X.Average.Value)
+
+ggplot(data_9, aes(x=Year)) + 
+  geom_histogram(binwidth = 1)
+```
+Efectivamente nos encontramos que los datos se encuentran balanceados
+
+El dataset que devuelve la API de la ONU está estructurado de manera que cada fila corresponde con la medida de un target asociado a un indicador del objetivo. Esta manera de estructurar los datos no nos permite realizar ningún tipo de estudio sobre la correlación o regresión de los datos. Y mucho menos entrenar un modelo de machine learning sobre los mismos. Es por ello que a continuación generaremos dos tratamientos que generarán:
+1. Un dataset que tendrá tantas columnas como Medida x Años. Ya que concatenará cada medida del dataset con el año que tiene asociado y seteará su valor en la columna correspondiente.
+
+2. Un dataset cuyas filas corresponden al par país - año, por lo que habrá una fila con la columna country=Spain y Year=2000, otra country=Spain y Year=2001, así en adelante. Y con todas las medidas asociadas a cada país en el año que se indica. 
+
+A continuación llevamos a cabo el primero de los tratamientos:
+
+## Tratamiento 1
 
 ```{r}
 country <- 0
@@ -25,24 +50,28 @@ aux <-0
 
 indicator <- '9.2.1'
 
+# Utilizamos uno cualquiera de los indicadores para sacar la lista de todos los países
 goal_9 <- data_9 %>%
             filter(stringr::str_detect(Indicator.Name, indicator)) %>%
               distinct(Country.or.Area, .keep_all = TRUE)
 
 country_list <- goal_9$Country.or.Area
 
-# Esto es en el caso de los menores o iguales a 9. Para objetivos posteriores 11,16
+# Extraemos los identificadores numéricos de los indicadores, para almacenarlos como 9.2.1. sin el texto asociado
 goal_9_indicators_as_list <- data_9 %>%
                       distinct(Indicator.Name, .keep_all = TRUE) %>%
                         select(Indicator.Name) %>%
-                          map(function(x) substring(x, 11, 15))
+                          map(function(x) substring(x, 11, 15)) # Para objetivos posteriores a 9: 11,16
 
-
+# Obtengo la lista de años distintos disponibles en el dataset
 goal_9_years_as_list <- data_9 %>%
+                      filter(!is.na(Year)) %>%
                       distinct(Year, .keep_all = TRUE) %>%
                         select(Year)
 
+# Obtengo la lista de medidas distintas disponibles en el dataset
 goal_9_measure_as_list <- data_9 %>%
+                      filter(!is.na(Measure)) %>%
                       distinct(Measure, .keep_all = TRUE) %>%
                         select(Measure)
 
@@ -56,11 +85,16 @@ goal_9_measure_as_list <- data_9 %>%
 headers <- c()
 country_value_list <- c()
 country_value_list_aux <- c()
+# Recorro las distintas medidas
 for(m in 1:nrow(goal_9_measure_as_list)){
+  # Recorro los distintos años
   for (y in 1:nrow(goal_9_years_as_list)) {
+    # Para cada país extraigo una columna por cada par (medida - año)
+    # Creo el nombre de la columna que es: "Nombre.de.la.medida_Año"
     name_column <- paste(goal_9_measure_as_list[m, ], goal_9_years_as_list[y, ], sep="__")
     headers <- c(headers, name_column)
     for (c in country_list) {
+       # Para cada país selecciono el valor numérico correspondiente a las columnas que voy creando 
        country_value <- data_9 %>%
                         filter(Country.or.Area == c,
                                Measure == goal_9_measure_as_list[m, ],
@@ -72,34 +106,37 @@ for(m in 1:nrow(goal_9_measure_as_list)){
     country_value_list_aux <- c()
   }
 }
-
 # col_numbers_df <- nrow(goal_9_measure_as_list) * nrow(goal_9_years_as_list)
 
-#create data frame with 0 rows and 5 columns
+# Inicializo el dataset con el número de columnas que necesito
 df <- data.frame(matrix(ncol = length(headers), nrow = 0))
-
-#view structure of the data frame
-# str(df)
-
 ```
 
-
+Debido a la alta complejidad de este tratamiento, persistimos los datos una vez llevado a cabo, en forma de .csv, con el objetivo de ejecutar el método solamente una vez. Y en ocasiones posteriores leerlo del fichero.
 
 ```{r}
 df <- data.frame(country_value_list)
-#provide column names
+# Le damos nombre a las columnas
 colnames(df) <- headers
+# Añadimos la columna asociada a cada país
 df$country <- country_list
 write.csv(df,"data/goal9_measure_year.csv", row.names = TRUE)
 ```
 
+## Tratamiento 2
+
+Como se ha mencionado antes, una vez ejecutado el código anterior, obtenemos los datos que se describieron en el punto primero. Por lo que ahora llevaremos a cabo un tratamiento de los datos para obtener un dataset como el descrito en el punto dos, en el que los años y las medidas se almacenen como columna.
+
+Para ello recorro todas las medidas distintas que hay en el dataset, y para cada una de ellas, genero un dataframe, para posteriormente unirlos todo en uno solo, resultando un dataset con tantas columnas como medidas hay.
 
 ```{r}
 df <- read_delim("data/goal9_measure_year.csv", delim=",")
 measures_data <- list()
 for (index_measure in 1:nrow(goal_9_measure_as_list)) {
 
+  # Obtengo los valores (X.Average.Valua) para una medida
   goal_measure_data <- data_9 %>%
+          # Elimino las regiones y continentes (todo lo que no es un país)
             filter(Measure == goal_9_measure_as_list[index_measure,],
                    !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', Country.or.Area)) %>%
   complete(Year) %>%  
@@ -112,29 +149,45 @@ for (index_measure in 1:nrow(goal_9_measure_as_list)) {
   
   measures_data <- c(measures_data, goal_measure_data)
   
+  # En la primera iteración inicializo el dataframe con los valores asociados a la primera medida
   if (index_measure == 1) {
     goal_9_measure_all_data <- goal_measure_data
   } else {
+    # A partir de la segunda hago un join de todos los dataframe generando el resultado final al terminar el bucle
     goal_9_measure_all_data<-merge(x=goal_9_measure_all_data,y=goal_measure_data,by=c('Country','Year'),all.x=TRUE)
   }
 }
 ```
 
-```{r}
+Así, genero un dataset con X filas por país, tantas como años tenemos disponibles. Pero nos falta un dato para responder a nuestra pregunta, que es el Índice de Desarrollo Humano. Para ello acudimos a otra fuente de datos,  el Programa de desarrollo de las Naciones Unidas (http://hdr.undp.org/en/data).
 
+## Integración de datos para inclusión del IDH
+
+Con estos datos sobre el IDH de los países desde los 90 hasta ahora, tenemos que realizar un trabajo para integrar ambas fuentes de datos. Inicialmente, se ha llevado un procesamiento manual, homogeneizando los nombres de los países, continentes y regiones para que se pueda llevar a cabo lo siguiente.
+
+```{r}
+# Cargamos la nueva fuente de datos
 hdi <- read.csv('./data/HDI.csv', row.names = "country")
 hdi_column <- c()
 for (row_num in 1:nrow(goal_9_measure_all_data)) {
   row_country <- goal_9_measure_all_data[row_num,"Country"]
+  # Los nombres de las columnas de la UNDP se corresponden con X1999, X2000, por lo que concatenamos una X al inicio
   row_year <- paste("X", goal_9_measure_all_data[row_num,"Year"], sep="")
+  # Busco el valor correspondiente al par (país, año) para setearlo en mi dataset ya tratado (tratamiento punto 2)
   hdi_value <- hdi[toString(row_country), toString(row_year)]
   hdi_column <- c(hdi_column, hdi_value)
 }
 ```
 
+Finalmente con todos los IDH extraídos como un vector con el mismo orden que los países de mi dataset, solamente queda añadirlos como una nueva columna de este.
+
+Pero además, generaremos una columna adicional, para categorizar a los países en las clases nivel de desarrollo bajo, medio, alto y muy alto. Esto viene motivado por los criterios que se pueden leer en la fuente (http://hdr.undp.org/sites/default/files/2016_human_development_report.pdf). Con lo que nos será posible posteriormente entrenar a un clasificador.
+
 ```{r}
+# Añado el IDH como una nueva columna del dataset
 goal_9_measure_all_data$HDI <- hdi_column
 hdi_categorical <- c()
+# Hago el mapeo entre los valores del IDH y las categorías, según los umbrales marcados en el informe
 for (i in 1:length(hdi_column)) {
   if (is.na(hdi_column[i])) {
     hdi_categorical <- c(hdi_categorical, hdi_column[i])
@@ -148,38 +201,8 @@ for (i in 1:length(hdi_column)) {
     hdi_categorical <- c(hdi_categorical, "Muy Alto")
   }
 }
+# Añado los valores categóricos en la columna HDI_categorical
 goal_9_measure_all_data$HDI_categorical <- hdi_categorical
 df_hdi <- data.frame(goal_9_measure_all_data)
 write.csv(df_hdi,"data/goal_9_measure_all_data.csv", row.names = FALSE)
 ```
-
-
-```{r}
-library(ggplot2)
-library(dplyr)
-library(broom)
-library(ggpubr)
-```
-
-```{r}
-df_hdi <- select(df_hdi, -Year)
-country.hdi.lm <- lm(HDI ~ Country , data = df_hdi)
-summary(country.hdi.lm)
-```
-
-```{r}
-par(mfrow=c(2,2))
-plot(country.hdi.lm)
-par(mfrow=c(1,1))
-```
-
-```{r}
-country.hdi.graph<-ggplot(df_hdi, aes(x=Country, y=HDI))+
-                     geom_point()
-
-country.hdi.graph <- country.hdi.graph + geom_smooth(method="lm", col="black")
-country.hdi.graph <- country.hdi.graph + stat_regline_equation(label.x = 3, label.y = 7)
-
-country.hdi.graph
-```
-
