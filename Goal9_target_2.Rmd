@@ -25,8 +25,17 @@ goal9PIB <- goal9 %>%
          CountryOrArea %in% c("Africa", "Oceania", "Americas","Europe","Asia")) %>% 
   group_by(Year) %>% 
   complete(Year, AverageValue) 
+
+goal9_mz <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>%
+  filter(Measure=="Manufacturing value added per capita (constant 2015 United States dollars)",
+         CountryOrArea == "Mozambique") %>% 
+  group_by(Year) %>% 
+  complete(Year, AverageValue) 
 ```
-#2. VISUALIZACIÓN DEL PIB POR CONTINENTE
+#2. VISUALIZACIÓN
+
+##2.1 VISUALIZACIÓN DEL PIB POR CONTINENTE
 ```{r}
 goal9PIB %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_point() + 
   geom_smooth(method="lm", size=1.5) + 
@@ -38,7 +47,28 @@ goal9PIB %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_poi
                                   color="black", 
                                   lineheight=1.5)) +
     labs(x = "Year",y = "Average Value (CON_USD)") + 
-    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1.5))) +
-    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1.5))) 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1))) 
 ```
 África es el continente más perjudicado y no parece ir mejorando, en cambio observamos como Asia si lo hace y Oceanía empeora.
+
+#2.1 VISUALIZACIÓN DEL PIB EN MOZAMBIQUE
+
+```{r}
+goal9_mz %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_point() + 
+  geom_smooth(method="lm", size=1.5) + 
+  theme (text = element_text(size=8)) + 
+    ggtitle ("MOZAMBIQUE: Manufacturing value added per capita") + 
+    theme (plot.title = element_text(size=rel(1.5), 
+                                  vjust=2, 
+                                  face="bold", 
+                                  color="black", 
+                                  lineheight=1.5)) +
+    labs(x = "Year",y = "Average Value (CON_USD)") + 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1))) 
+```
+
+
+
+

@@ -54,11 +54,11 @@ goal9tonnes %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + geom_
                                   color="black", 
                                   lineheight=1.5)) + 
     labs(x = "Year",y = "Average Value (millions of tonnes)") + 
-    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1.5))) +
-    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1.5))) 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1))) 
 
 ```
-##2.1 EMISIONES POR CONTINENTE EN FUNCIÓN DEL PIB
+##2.2 EMISIONES POR CONTINENTE EN FUNCIÓN DEL PIB
 
 
 Asia es el continente contaminante por excelencia, además tiene una tendencia al alza al contrario del resto de continentes que parecen reducir sus emisiones progresivamente.
@@ -72,20 +72,61 @@ goal9GDP <- goal9 %>%
          CountryOrArea %in% c("Europe", "Oceania","Africa","Asia","Americas")) %>% 
          group_by(Year) 
 
-
 goal9GDP %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + 
   geom_point()+ 
   geom_smooth(method="lm", size=1.5) + 
   theme (text = element_text(size=8)) + 
-    ggtitle ("CO2 Emissions per unit od GDP") + 
+    ggtitle ("CO2 Emissions per unit of GDP") + 
     theme (plot.title = element_text(size=rel(2), 
                                   vjust=2, 
                                   face="bold", 
                                   color="black", 
                                   lineheight=1.5)) + 
     labs(x = "Year",y = "Average Value (kg of CO2)") + 
-    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1.5))) +
-    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1.5)))
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1)))
+```
+##2.3 MOZAMBIQUE: EMISIONES DE CO2
+```{r}
+
+goal9GDP_mz_1 <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>% 
+  filter(Measure=="Carbon dioxide emissions from fuel combustion (millions of tonnes)", 
+         CountryOrArea == "Mozambique") %>% 
+         group_by(Year)
+
+goal9GDP_mz_2 <- goal9 %>%
+  select(Measure,CountryOrArea,Year,AverageValue) %>% 
+  filter(Measure=="Carbon dioxide emissions per unit of GDP (kilogrammes of CO2 per constant 2010 United States dollars)", 
+         CountryOrArea == "Mozambique") %>% 
+         group_by(Year)
+goal9GDP_mz_1 %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + 
+  geom_point()+ 
+  geom_smooth(method="lm", size=1) + 
+  theme (text = element_text(size=8)) + 
+    ggtitle ("MOZAMBIQUE: CO2 Emissions per unit of GDP") + 
+    theme (plot.title = element_text(size=rel(1.3), 
+                                  vjust=2, 
+                                  face="bold", 
+                                  color="black", 
+                                  lineheight=1.5)) + 
+    labs(x = "Year",y = "Average Value (kg of CO2)") + 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1)))
+
+goal9GDP_mz_2 %>% ggplot(aes(x=Year, y=AverageValue, color=CountryOrArea)) + 
+  geom_point()+ 
+  geom_smooth(method="lm", size=1) + 
+  theme (text = element_text(size=8)) + 
+    ggtitle ("MOZAMBIQUE: Carbon dioxide emissions from fuel combustion") + 
+    theme (plot.title = element_text(size=rel(1.3), 
+                                  vjust=2, 
+                                  face="bold", 
+                                  color="black", 
+                                  lineheight=1.5)) + 
+    labs(x = "Year",y = "Average Value (millions of tonnes)") + 
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1)))
 
 ```
 Todos los continentes están reduciendo sus emisiones de CO2 respecto al PIB de cada continente, Europa, América y Oceanía lo hacen de manera proporcional.
