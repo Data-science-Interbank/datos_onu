@@ -12,7 +12,7 @@ library(tidyverse)
 ```
 
 
-```{r read data_aux}
+```{r Lectura de los datos}
 data_1 <- read.csv2('./data/goal_1.csv')
 data_2 <- read.csv2('./data/goal_2.csv')
 data_3 <- read.csv2('./data/goal_3.csv')
@@ -52,8 +52,8 @@ datasets <- list(data_1,
             data_17
 )
 
-```
 
+```
 
 
 ```{r}
@@ -98,13 +98,13 @@ for (data in datasets){
     goal_name[i] <- substr(goal, aux[2]+1, nchar(goal))
     
     #TARGET
-    target_number <- regmatches(target[i], regexpr('.\\..', target[i]))
+    target_number <- regmatches(target[i], regexpr('.{1,2}\\..{1,2}', target[i]))
     target_numbers[i]=target_number
     aux <- stringr::str_locate(target[i] , ' - ')
     target_names[i] <- substr(target[i], aux[2]+1, nchar(target[i]))
   
     #INDICATORS
-    indicator_number <- regmatches(indicator[i], regexpr('.\\..{1,2}\\..', indicator[i]))
+    indicator_number <- regmatches(indicator[i], regexpr('.{1,2}\\..{1,2}\\..', indicator[i]))
     indicator_numbers[i]=indicator_number
     aux <- stringr::str_locate(indicator[i] , ' - ')
     indicator_names[i] <- substr(indicator[i], aux[2]+1, nchar(indicator[i]))
@@ -169,8 +169,8 @@ for (data in datasets){
   
   
   diccionario_aux <- data.frame(Goal = goal_number, 
-                            Target = target_number, 
-                            Indicator = indicator_number,
+                            Target = target_numbers, 
+                            Indicator = indicator_numbers,
                             Measure = medidas,
                             Units = unidades,
                             Age = edades,
@@ -184,19 +184,73 @@ for (data in datasets){
 
 diccionario <- rbind(diccionario, diccionario_aux)
 }
+diccionario <- diccionario %>% filter(Goal != 0)
 diccionario
+```
+
+```{r Análisis exploratorio del diccionario}
+
+recuento_goal <-diccionario %>%
+                  count(Goal) %>%
+                    filter(Goal != 0)
+
+recuento_goal$Goal <- as.numeric(recuento_goal$Goal)
+str(recuento_goal)
+
+recuento_goal <- recuento_goal %>%
+                  arrange(Goal)
+
+recuento_goal_9 <- recuento_goal %>%
+                    arrange(Goal) %>%
+                      filter(Goal == 9)
 
 
-indicator_number
+
+ggplot() +
+geom_col(aes(x = Goal, y = n),recuento_goal, fill= "blue") +
+geom_col(aes(x = Goal, y = n),recuento_goal_9, fill= "red") +
+  ggtitle ("Numero de measures por Goal") +
+  theme (plot.title = element_text(size=rel(2), 
+                                  vjust=1, 
+                                  face="bold", 
+                                  color="black", 
+                                  lineheight=1.5)) +
+  labs(x = "GOALS",y = "Cantidad")
+```
+
+```{r Identificacion de Measures repetidas}
+diccionario %>% filter(Measure =="Number of deaths and missing persons attributed to disasters (number)")
+
+i <- 1
+while (i <= length(diccionario$Measure)){
+  diccionario$Measure
+  j <- i+1
+  while (j <= length(diccionario$Measure)){
+    if (diccionario$Measure[i] == diccionario$Measure[j]){
+      print(diccionario$Measure[i])
+    }
+    j <- j+1
+  }
+  i <- i+1
+}
+
+
+print("Numero de Goal")
+nrow(print(diccionario %>% distinct(Goal)))
+
+print("Numero de Targets")
+nrow(print(diccionario %>% distinct(Target)))
+
+print("Numero de tipos de datos (Measures):")
+nrow(diccionario %>% distinct(Measure))
 
 ```
 
 
 
 ```{r Exportamos a }
-
 write.csv(diccionario,"./data/diccionario_datos_onu.csv", row.names = FALSE)
-
 ```
+
 
 

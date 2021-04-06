@@ -1,9 +1,22 @@
+# Generación del modelo de datos
+
+
 ```{r}
-# library(VIM)
+library(tidyverse)
 library(caret)
 library(ggcorrplot) 
 ```
-## Data reading
+
+## Pregunta
+
+¿Se puede determinar el Índice de Desarrollo Humano a partir de los datos sobre industrialización, infraestructuras e innovación?
+
+## Lectura de los datos
+
+A continuación se lleva a cabo la lectura de los datos provenientes de la ejecución del archivo "procesado_clasificacion.Rmd", se que corresponden con los asociados al objetivo 9, que es el asociado a los datos sobre industrialización, infraestructuras e innovación, dispuestos cada uno de los indicadores en columnas e integrada otra fuente de datos para adherir el Índice de Desarrollo Humano como columna. 
+
+A este dataset leido desde un fichero csv se le eliminan las variables que tienen todos sus avlores nulos y posteriormente se imprimen los valores más representativos de cada columna (máximo, mínimo, media, número de valores nulos, etc.)
+
 ```{r}
 dt <- read_delim('datos_onu/data/goal_9_measure_all_data.csv', delim=",", na = c("", "NA"), quoted_na=TRUE)
 dt <- dt %>% select(-Var.23)
@@ -14,23 +27,28 @@ dt <- dt[ , colSums(is.na(dt)) < nrow(dt)]
 # colnames(dt)[ncol(dt)] <- "HDI_categorical"
 summary(dt)
 ```
+Hacemos un estudio de los valores nulos obteniendo el número de ellos presentes en el dataset.
+
 ```{r}
 sum(is.na(dt))
 mean(is.na(dt))
 ```
-
+Vamos a pintar un histograma para ver en qué cuales son los valores más comunes de HDI o IDH para los países del mundo.
 
 ```{r}
 hist(dt$HDI)
 ```
 
-En este histograma se puede ver que la mayoría de los países se concentran entre 0.7 y 0.95, por lo que podemos decir que la mayoría de ellos tienen un nivel de desarrollo humano alto o muy alto.
+En este histograma se puede ver que la mayoría de los países se concentran entre 0.7 y 0.95, por lo que podemos decir que la mayoría de ellos tienen un IDH alto o muy alto.
+
+A continuación vamos a identificar cuales son las columnas que contienen algun valor nulo.
 
 ```{r}
 list_na <- colnames(dt)[ apply(dt, 2, anyNA) ]
 list_na
 ```
 
+Para representar la cantidad de valores nulos por cada una de las variables vamos a definir dos funciones:
 
 ```{r}
 wrap.it <- function(x, len)
@@ -54,18 +72,22 @@ wrap.labels <- function(x, len)
 }
 ```
 
+Con estas podremos representar de manera horizontal y reduciendo el tamaño de las etiquetas asociadas a los nombres de las columnas del dataset.
 
 ```{r}
 null_values <- colSums(is.na(dt))
 wr.lap <- wrap.labels(rownames(as.data.frame(null_values)), 25)
 barplot(1:length(null_values), names.arg = wr.lap, horiz = T, las = 1, cex.names = 0.4)
 ```
+Considerando que el total de filas del dataset son 4762, el total de valores nulos no es representativo y por tanto no supone un problema para continuar con el trabajo. Aún así, aprovechando que son pocos respecto del total (el mayor solo supone un 0,4% del total), vamos a llevar a cabo una técnica de sustitución de valores nulos, sustituyendo los nulos por la media del resto de valores de la columna. Para ello eliminaremos primero las variables categóricas, ya que de estas no podemos hacer media.
+
 ```{r}
 name <- which(names(dt) == "Country" | names(dt) == "HDI_categorical")
 data_filtered <- dt[, -name]
 # ggcorrplot(cor(data_filtered))
 ```
 
+Posteriormente extraemos un dataframe con los nombres de las variables que contienen valores nulos y su media asociada.
 
 ```{r}
 average_missing <- apply(data_filtered[ , colnames(data_filtered) %in% list_na],
@@ -76,6 +98,8 @@ avg_missing_df <- as.data.frame(average_missing)
 avg_missing_df
 ```
 
+Y finalmente aplicamos una función a todas las filas del dataset, de manera que si contiene valores nulos, se sustituye por la media del resto de valores.
+
 ```{r}
 df_impute_mean <- data.frame(
     sapply(
@@ -85,28 +109,27 @@ df_impute_mean <- data.frame(
             x)))
 ```
 
+Con esto comenzamos la preparación de los datos para responder a nuestra pregunta. La capacidad de determinar el IDH a partir de los datos de industrialización, infraestruturas e innovación lo responderemos entrenando un modelo de clasificación, que solamente tomará como entrada los datos del objetivo y dará como salida el nivel de IDH asociado al país. Si el accuracy del modelo entrenado es bastante alto (más de un 85%) podremos responder afirmativamente a la pregunta.
 
 ```{r}
 data <- df_impute_mean %>% select(-Country, -HDI)
-# data <- data[!is.na(data$HDI_categorical), ]   
-# También se puede utilizar esta opción pero imprime demasiados datos
 data <- data %>% drop_na() 
 data$HDI_categorical <- factor(data$HDI_categorical, exclude = NULL)
 anyNA(data$HDI_categorical)
 ```
 
+Con estas celdas comprobamos que el valor de nulos es 0 en todo el dataset.
 
 ```{r}
 sum(is.na(data))
 colSums(is.na(data))
 ```
-
 Las columnas de datos con pocos cambios en los datos representan muy poca información. No hay que olvidar que la varianza depende del rango, por lo tanto, antes de tratar las columnas de datos con baja varianza, debemos normalizarlas. En R se puede utilizar la función nearZeroVar() de la librería caret.
 
 ```{r}
 nearZeroVar(data, saveMetrics = TRUE)
 ```
-La primera fila es la única que tiene un valor de la varianza bajo, pero es la penúltima la que tiene el zeroVar a true, por lo que la eliminamos, ya que no aporta apenas información.
+La primera fila es la única que tiene un valor de la varianza bajo, pero es la penúltima la que tiene el zeroVar a true, por lo que la eliminamos, ya que no aporta apenas información al comportarse igual que otra variable que tenemos en el dataset.
 
 ```{r}
 data <- data %>% select(-starts_with("Freight.loaded.and.unloaded..maritime.transport..metric.tons."))
@@ -114,14 +137,24 @@ data <- data %>% select(-starts_with("Freight.loaded.and.unloaded..maritime.tran
 
 Con lo que queda eliminada la columna asociada a la medida "Freight.loaded.and.unloaded..maritime.transport..metric.tons.".
 
+A continuación llevamos a cabo la división entre conjunto de entrenamiento (80%) y pruebas (20%) del dataset, y la configuración necesaria para posteriormente entrenar el modelo ML a partir de estos datos. En este problema hemos obtado por RandomForest, al probar más cantidad de algoritmos y maximizar las posibilidades de obtener buenos rendimientos.
+
 ```{r}
 # Data Partition
 library(randomForest)
 
 ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.8, 0.2))
 
+
 train <- data[ind==1,]
 test <- data[ind==2,]
+
+i <- c(1:20)
+train[ , i] <- apply(train[ , i], 2, function(x) as.numeric(as.character(x)))
+test[ , i] <- apply(test[ , i], 2, function(x) as.numeric(as.character(x)))
+train$HDI_categorical <- factor(train$HDI_categorical, exclude = NULL)
+test$HDI_categorical <- factor(test$HDI_categorical, exclude = NULL)
+
 metric <- "Accuracy"
 
 
@@ -141,11 +174,11 @@ customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs) {
                ntree=param$ntree)
 }
 
-#Predict label
+# Etiqueta predicha
 customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
    predict(modelFit, newdata)
 
-#Predict prob
+# Prediccion prob
 customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
    predict(modelFit, newdata, type = "prob")
 
@@ -160,14 +193,10 @@ control <- trainControl(method="repeatedcv",
                         verboseIter = TRUE,
                         allowParallel = TRUE)
 
-tunegrid <- expand.grid(.mtry=c(1:15),.ntree=c(10, 30, 60, 90))
+tunegrid <- expand.grid(.mtry=c(1:15),.ntree=c(4, 10))
 ```
 
-
-```{r}
-cor(train)
-```
-
+Llevamos a cabo el entrenamiento del Random Forest para clasificar las instancias entre cuatro etiquetas: "Muy Alto", "Alto", "Medio" o "Bajo".
 
 ```{r}
 set.seed(1)
@@ -182,11 +211,22 @@ custom <- train(HDI_categorical~., data=train,
 summary(custom)
 ```
 
+A continuación representamos un resumen de los resultados que se han obtenido con el entrenamiento.
 
 ```{r}
 summary(custom)
 plot(custom)
 ```
+Se puede observar perfectamente que con un ntree de 10 se obtienen valores de precisión superiores al 90% a partir de la tercera iteración.
+
+A continuación generamos el fichero necesario para almacenar el modelo.
+
+```{r}
+saveRDS(custom, "model_rf_HDI.rds")
+```
+
+Finalmente llevamos a cabo la predicción y pintamos la matriz de confusión utilizando datos de prueba.
+
 ```{r}
 tunegrid <- expand.grid(.mtry=c(10),.ntree=c(60))
 
@@ -198,130 +238,10 @@ best_model <- train(HDI_categorical~., data=train,
                 tuneGrid=tunegrid, 
                 trControl=control)
 
-## Prediction & Confusion Matrix - test data
-predict_rf_model <- predict(best_model, test)
-confusionMatrix(predict_rf_model, as.factor(test$HDI_categorical))
+predict_rf_model <- predict(custom, test)
+conf_mat <- confusionMatrix(predict_rf_model, as.factor(test$HDI_categorical))
 
-
-```
-```{r}
-library(pROC)
-library(ROCit)
-library(broom)    # tidy()
-library(tibble)   # tibble()
-## Warning: package 'ROCit' was built under R version 3.5.2
-ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
-plot(ROCit_obj)
-
-myroc <- roc(as.numeric(predict_rf_model), as.numeric(test$HDI_categorical))
-auc(myroc)
-
-
-```
-```{r}
-library(ROCit)
-## Warning: package 'ROCit' was built under R version 3.5.2
-ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
-plot(ROCit_obj)
-
-
-```
-
-```{r}
-## Prediction & Confusion Matrix - test data
-predict_rf_model <- predict(model, test)
 confusionMatrix(predict_rf_model, as.factor(test$HDI_categorical))
 ```
-```{r}
-library(pROC)
-library(ROCit)
 
-## Warning: package 'ROCit' was built under R version 3.5.2
-ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
-plot(ROCit_obj)
-
-myroc <- roc(as.numeric(predict_rf_model), as.numeric(test$HDI_categorical))
-auc(myroc)
-
-
-```
-```{r}
-library(ROCit)
-## Warning: package 'ROCit' was built under R version 3.5.2
-ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
-plot(ROCit_obj)
-
-
-```
-
-
-```{r}
-
-# Data Partition
-# 70% train, 30% test
-
-ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
-
-train <- data[ind==1,]
-test <- data[ind==2,]
-
-
-
-
-tr_control <- trainControl(method='cv',
-                           number=5,
-                           classProbs = TRUE,
-                           verboseIter = TRUE,
-                           ntree=60)
-
-set.seed(1)
-model <- train(HDI_categorical ~ ., train,
-               method='rf', TuneLength=3,
-               trControl = tr_control)
-
-print(model)
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-https://www.kaggle.com/general/23243
-
-
-For dimensionality reduction or feature extraction, I would recommend the following steps;
-
-    Missing value ratio: set up a threshold say of 80% and then check for the data columns that exceed this threshold and either impute them or remove them because data columns with exceedingly high missing values do not contribute much to the outcome. A rule of thumb is higher the threshold more stringent is the reduction.
-
-In R, you can do this by first checking the overall missing value count by using the sum(is.na(yourdataframename)) and then you can check for the column wise missing pattern by the colSums() like colSums(is.na(yourdataframename))
-
-    Check for near zero variance variables
-
-The data columns with little changes in the data carry very little information. Remember variance is range dependent therefore before you go about treating such low variance data columns do normalize them. In R you can use the nearZeroVar() function from the caret library.
-
-    Check for high correlated variables
-
-The data columns with similar trends are likely to carry similar information and are thus useless for a robust model and should be removed. But remember, correlation is scale sensitive therefore normalize the variables first. To detect for high correlated variables, you can use the cor() function and the findCorrelation() function from the base R library. Also remember, correlation works only for numeric variables so if you have categorical variables then you have to find out how to detect high correlation in them.
-
-Example in R
-
-    train.cont.cor<-cor(train.cont) # using the base R cor()
-
-    train.cont.higCor<- findCorrelation(train.cont.cor, cutoff = 0.80)
-
-    names(train[train.cont.higCor]) # There are three predictors with more than 80% correlation and these are "YearRemodAdd" "OverallCond" "BsmtQual". They should be removed from the train data
-
-    train.cont.filt<-train.cont[, -train.cont.higCor] # remove the high correlated predictors from the continuous predictors in the train data subset
-
-    train.filt<- train[, -train.cont.higCor] # remove the high correlated predictors from the train data subset
-
-
+Obteniendo un accuracy de más del 95%, la mayor parte de los datos en la diagonal de la matriz de confusión, lo que refleja el grado de acierto de nuestro modelo. Y lo que es más importante, un p-valor inferior al 0.05, con lo que podemos aceptar nuestra hipótesis como válida.

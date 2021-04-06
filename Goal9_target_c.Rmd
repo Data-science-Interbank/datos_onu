@@ -1,6 +1,6 @@
 ---
-title: "Goal9_target_1.c"
-author: "Julia Palacios"
+title: "Proporción de población cubierta por red móvil"
+author: "Antonio Martínez, Julia Palacios, Arturo Pérez, José Enrique Sánchez"
 date: "21/3/2021"
 output: html_document
 ---
@@ -91,3 +91,24 @@ data_rank_mobile %>%
 
 ```
 Djibouti tiene tan solo un 5% de su población cubierta por red móvil 4G, como podemos observar en el top 10 de países con menor cobertura encontramos principalmente países de África.
+
+##3.2 MOZAMBIQUE: PORCENTAJE DE POBLACIÓN CUBIERTO POR RED MÓVIL
+```{r}
+mobile_cov_mz <- mobile_cov %>% 
+  filter(CountryOrArea=="Mozambique") %>% 
+  group_by(Year,Measure) %>%
+    summarize(mean_mobile=mean(AverageValue))
+
+ggplot(mobile_cov_mz, aes( x = Year, y=mean_mobile, color = Measure)) +
+  geom_point() +
+  ggtitle ("MOZAMBIQUE: Proportion of population covered mobile network") +
+    theme (plot.title = element_text(size=rel(1), 
+                                  vjust=1, 
+                                  face="bold",
+                                  color="black", 
+                                  lineheight=1.5)) + 
+    labs(x = "Year",y = "Average Value (%)") +
+    theme(axis.title.x = element_text(face="bold", vjust=-0.5, colour="black", size=rel(1))) +
+    theme(axis.title.y = element_text(face="bold", vjust=1.5, colour="black", size=rel(1)))
+```
+

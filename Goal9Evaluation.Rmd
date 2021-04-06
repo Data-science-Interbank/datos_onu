@@ -12,7 +12,7 @@ library(tidyverse)
 library(corrplot)
 library(PerformanceAnalytics)
 ```
-0. LECTURA DE DATOS
+#0. LECTURA DE DATOS
 
 ```{r lectura datos}
 goal_9 <- read_delim(file = "data/goal_9.csv", delim = ";")
@@ -121,7 +121,7 @@ goal_9_regresion_all_years <- goal_9_regresion %>%
 
 Probaremos con tres índices y justificaremos la respuesta:
 
-##2.1. ÍNDICE DE PEARSON
+##2.1.ÍNDICE DE PEARSON
 
 Para este tipo de correlación es ideal eliminar los outliers, pero nosotros los contenemos en nuestro dataset y eliminarlos supondría perder muchos datos por cada fila. Por lo tanto sabemos que este índice no es el más adecuado para nuestro experimento.
 ```{r}
@@ -158,17 +158,6 @@ cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
 ```{r}
 cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
          goal_9_regresion_all_years$Manufacturing_value_added_per_capita_in_dollars,method="spearman",exact=FALSE)
-```
-
-
-##2.3 ÍNDICE DE KENDALL
-```{r}
-corr <- round(cor(goal_9_regresion_all_years),1)
-chart.Correlation(corr, histogram=TRUE, method = c("kendall"), pch="+")
-```
-```{r}
-cor.test(goal_9_regresion_all_years$Mean_population_covered_by_mobile_network,
-         goal_9_regresion_all_years$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,method="kendall",exact=FALSE)
 ```
 ##2.4 ESTUDIO DE UN AÑO EN CONCRETO
 Probaremos a realizar el mismo estudio con un solo año, para ello haremos un estudio de los valores perdidos, y obtendremos el año con menor porcentaje, de este modo realizaremos la correlación únicamente con dicho año. A fin de obtener un resultado más preciso.
@@ -215,18 +204,18 @@ for (i in 1:20){
 
 
 corr <- round(cor(goal_9_regresion_2015),1)
-chart.Correlation(corr, histogram=TRUE, method = c("spearman"), pch=19)
+chart.Correlation(corr, histogram=TRUE, method = c("spearman"), pch="+")
 ```
 ```{r}
-cor.test(goal_9_regresion_2015$Mean_population_covered_by_mobile_network,
-         goal_9_regresion_2015$Total_official_flows_for_infrastructure_millions_of_constant_2018_United_States_dollars,method="spearman",exact=FALSE)
+cor.test(goal_9_regresion_2015$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,
+         goal_9_regresion_2015$Mean_population_covered_by_mobile_network,method="spearman",exact=FALSE)
 ```
 
 Como podemos observar tenemos cerca de un 18% al menos para alguna "medida" de valores perdidos para 2015, pero el año más actual con mejores datos.
 
 Nos aparece un p-valor muy alto para la medida en el que da un 1 en la correlación.
 
-## 2.5 ESTUDIO DE UN PAÍS EN CONCRETO
+## 2.5 MOZAMBIQUE:ESTUDIO DE UN PAÍS EN CONCRETO
 Vamos a realizar un estudio para un país en desarrollo en concreto: Mozambique
 ```{r}
 
@@ -241,21 +230,24 @@ goal_9_regresion_mozambique <- goal_9_regresion %>%
 
 
 corr <- round(cor(goal_9_regresion_mozambique),1)
-chart.Correlation(corr, histogram=TRUE, method = c("pearson"), pch=19)
+chart.Correlation(corr, histogram=TRUE, method = c("pearson"), pch="+")
 ```
+```{r}
+cor.test(goal_9_regresion_mozambique$Carbon_dioxide_emissions_from_fuel_combustion_millions_of_tonnes,
+         goal_9_regresion_mozambique$Mean_population_covered_by_mobile_network,method="pearson",exact=FALSE)
+```
+#3. CONCLUSIONES
 
-3. CONCLUSIONES
+Realizando el estudio con todos los años y países podemos saber:
+- Según aumenta el PIB aumenta la emisión de CO2
+- Según disminuyen las emisiones de CO2
+con menor seguridad podríamos decir:
+- Según aumenta el PIB aumenta la población cubierta por tecnología movil
+- Según disminuye el flujo de inversión a infraestructuras disminuye el PIB
 
-En el caso de Mozambique, podemos afirmar:
-- Según crece el PIB menor es el flujo económico para infraestructuras ¿?
-- Según crece el PIB mayor son las emisiones de C02
-- Según crece el PIB más personas están cubiertas por red móvil
-- Cuanto menor es el flujo económico para infraestructuras mayores son las emisiones de CO2
-- Cuanto menor es el flujo económico para infraestructuras más personas están cubiertas por red móvil
-- Cuanto mayores son las emisiones de C02 más personas están cubiertas por red móvil
+Realizando el estudio con un año en particular (2015):
+Los resultados no son muy buenos, y esto es debido a que en un año en concreto pueden existir países con distintas circunstancias que hagan que nuestra matriz pierda sentido, aún así es parte del experimento.
 
-PREGUNTAR POR LOS RESULTADOS GLOBALES Y SI TIENEN SENTIDO...
-
-DUDAS: Cuando tenemos una correlación negativa suponemos que las dos variables son descendientes y viceversa?
-
-DUDAS: Cómo saber que índice de correlación debemos usar? He explorado 3 pero tengo dudas...
+En Mozambique hemos obtenido muy buenos resultados:
+- Según aumenta el PIB aumenta la emisión de CO2 y el porcentaje de población cubierta por tecnología móvil
+- Según disminuye la inversión en infraestructura disminuye la emisión de CO2 y la población cubierta por tecnología móvil
