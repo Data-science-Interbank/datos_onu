@@ -4,3 +4,6 @@
 .Ruserdata
 datos_onu.Rproj
 .DS_Store
+data/goal_3.csv
+data/goal_4.csv
+data/goal_8.csv

@@ -95,17 +95,17 @@ write.csv(df,"data/goal9_measure_year.csv", row.names = TRUE)
 
 
 ```{r}
-# data <- read.csv2("data/goal9_measure_year.csv")
+df <- read_delim("data/goal9_measure_year.csv", delim=",")
 measures_data <- list()
 for (index_measure in 1:nrow(goal_9_measure_as_list)) {
 
-  goal_measure_data <- goal_9 %>%
+  goal_measure_data <- data_9 %>%
             filter(Measure == goal_9_measure_as_list[index_measure,],
-                   !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', CountryOrArea)) %>%
+                   !grepl('Americas|Asia|Africa|Oceania|Europe|ODA|America|developing|Developed|countries|Countries|regions|Channel', Country.or.Area)) %>%
   complete(Year) %>%  
-  group_by(CountryOrArea,Year) %>% 
-  arrange(desc(Year,CountryOrArea)) %>% 
-  select(CountryOrArea,Year,AverageValue)
+  group_by(Country.or.Area,Year) %>% 
+  arrange(desc(Year,Country.or.Area)) %>% 
+  select(Country.or.Area,Year,X.Average.Value)
   
   names(goal_measure_data)[1] = "Country"
   names(goal_measure_data)[3] = goal_9_measure_as_list[index_measure,]
@@ -134,6 +134,21 @@ for (row_num in 1:nrow(goal_9_measure_all_data)) {
 
 ```{r}
 goal_9_measure_all_data$HDI <- hdi_column
+hdi_categorical <- c()
+for (i in 1:length(hdi_column)) {
+  if (is.na(hdi_column[i])) {
+    hdi_categorical <- c(hdi_categorical, hdi_column[i])
+  } else if(hdi_column[i] < 0.550) {
+    hdi_categorical <- c(hdi_categorical, "Bajo")
+  } else if (hdi_column[i] < 0.7){
+    hdi_categorical <- c(hdi_categorical, "Medio")
+  } else if (hdi_column[i] < 0.8) {
+    hdi_categorical <- c(hdi_categorical, "Alto")
+  } else {
+    hdi_categorical <- c(hdi_categorical, "Muy Alto")
+  }
+}
+goal_9_measure_all_data$HDI_categorical <- hdi_categorical
 df_hdi <- data.frame(goal_9_measure_all_data)
 write.csv(df_hdi,"data/goal_9_measure_all_data.csv", row.names = FALSE)
 ```
@@ -148,7 +163,7 @@ library(ggpubr)
 
 ```{r}
 df_hdi <- select(df_hdi, -Year)
-country.hdi.lm <- lm(HDI ~ Country, data = df_hdi)
+country.hdi.lm <- lm(HDI ~ Country , data = df_hdi)
 summary(country.hdi.lm)
 ```
 
