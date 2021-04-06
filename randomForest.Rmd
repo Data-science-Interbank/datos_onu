@@ -1,0 +1,327 @@
+```{r}
+# library(VIM)
+library(caret)
+library(ggcorrplot) 
+```
+## Data reading
+```{r}
+dt <- read_delim('datos_onu/data/goal_9_measure_all_data.csv', delim=",", na = c("", "NA"), quoted_na=TRUE)
+dt <- dt %>% select(-Var.23)
+# Elimino las variables donde todos los valores son nulos
+dt <- dt[ , colSums(is.na(dt)) < nrow(dt)] 
+# invalid_cols = c(1, 2, 24) # Drop column Arrival.Delay.in.Minutes (contains misses values)
+# dt <- dt[, -invalid_cols]
+# colnames(dt)[ncol(dt)] <- "HDI_categorical"
+summary(dt)
+```
+```{r}
+sum(is.na(dt))
+mean(is.na(dt))
+```
+
+
+```{r}
+hist(dt$HDI)
+```
+
+En este histograma se puede ver que la mayoría de los países se concentran entre 0.7 y 0.95, por lo que podemos decir que la mayoría de ellos tienen un nivel de desarrollo humano alto o muy alto.
+
+```{r}
+list_na <- colnames(dt)[ apply(dt, 2, anyNA) ]
+list_na
+```
+
+
+```{r}
+wrap.it <- function(x, len)
+{ 
+  x <- gsub("\\.", " ", x)
+  sapply(x, function(y) paste(strwrap(y, len), 
+                              collapse = "\n"), 
+         USE.NAMES = FALSE)
+}
+
+
+# Call this function with a list or vector
+wrap.labels <- function(x, len)
+{
+  if (is.list(x))
+  {
+    lapply(x, wrap.it, len)
+  } else {
+    wrap.it(x, len)
+  }
+}
+```
+
+
+```{r}
+null_values <- colSums(is.na(dt))
+wr.lap <- wrap.labels(rownames(as.data.frame(null_values)), 25)
+barplot(1:length(null_values), names.arg = wr.lap, horiz = T, las = 1, cex.names = 0.4)
+```
+```{r}
+name <- which(names(dt) == "Country" | names(dt) == "HDI_categorical")
+data_filtered <- dt[, -name]
+# ggcorrplot(cor(data_filtered))
+```
+
+
+```{r}
+average_missing <- apply(data_filtered[ , colnames(data_filtered) %in% list_na],
+      2,
+      mean,
+      na.rm = TRUE)
+avg_missing_df <- as.data.frame(average_missing)
+avg_missing_df
+```
+
+```{r}
+df_impute_mean <- data.frame(
+    sapply(
+        dt,
+        function(x) ifelse(is.na(x),
+            mean(x, na.rm = TRUE),
+            x)))
+```
+
+
+```{r}
+data <- df_impute_mean %>% select(-Country, -HDI)
+# data <- data[!is.na(data$HDI_categorical), ]   
+# También se puede utilizar esta opción pero imprime demasiados datos
+data <- data %>% drop_na() 
+data$HDI_categorical <- factor(data$HDI_categorical, exclude = NULL)
+anyNA(data$HDI_categorical)
+```
+
+
+```{r}
+sum(is.na(data))
+colSums(is.na(data))
+```
+
+Las columnas de datos con pocos cambios en los datos representan muy poca información. No hay que olvidar que la varianza depende del rango, por lo tanto, antes de tratar las columnas de datos con baja varianza, debemos normalizarlas. En R se puede utilizar la función nearZeroVar() de la librería caret.
+
+```{r}
+nearZeroVar(data, saveMetrics = TRUE)
+```
+La primera fila es la única que tiene un valor de la varianza bajo, pero es la penúltima la que tiene el zeroVar a true, por lo que la eliminamos, ya que no aporta apenas información.
+
+```{r}
+data <- data %>% select(-starts_with("Freight.loaded.and.unloaded..maritime.transport..metric.tons."))
+```
+
+Con lo que queda eliminada la columna asociada a la medida "Freight.loaded.and.unloaded..maritime.transport..metric.tons.".
+
+```{r}
+# Data Partition
+library(randomForest)
+
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.8, 0.2))
+
+train <- data[ind==1,]
+test <- data[ind==2,]
+metric <- "Accuracy"
+
+
+customRF <- list(type = "Classification",
+                 library = "randomForest",
+                 loop = NULL)
+
+customRF$parameters <- data.frame(parameter = c("mtry", "ntree"),
+                                  class = rep("numeric", 2),
+                                  label = c("mtry", "ntree"))
+
+customRF$grid <- function(x, y, len = NULL, search = "grid") {}
+
+customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs) {
+  randomForest(x, y,
+               mtry = param$mtry,
+               ntree=param$ntree)
+}
+
+#Predict label
+customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+   predict(modelFit, newdata)
+
+#Predict prob
+customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+   predict(modelFit, newdata, type = "prob")
+
+customRF$sort <- function(x) x[order(x[,1]),]
+customRF$levels <- function(x) x$classes
+
+
+
+
+control <- trainControl(method="repeatedcv", 
+                        number=2,
+                        verboseIter = TRUE,
+                        allowParallel = TRUE)
+
+tunegrid <- expand.grid(.mtry=c(1:15),.ntree=c(10, 30, 60, 90))
+```
+
+
+```{r}
+cor(train)
+```
+
+
+```{r}
+set.seed(1)
+
+custom <- train(HDI_categorical~., data=train, 
+                method=customRF, 
+                metric=metric, 
+                tuneGrid=tunegrid, 
+                trControl=control)
+                #na.action=na.roughfix)
+
+summary(custom)
+```
+
+
+```{r}
+summary(custom)
+plot(custom)
+```
+```{r}
+tunegrid <- expand.grid(.mtry=c(10),.ntree=c(60))
+
+set.seed(1)
+
+best_model <- train(HDI_categorical~., data=train, 
+                method=customRF, 
+                metric=metric, 
+                tuneGrid=tunegrid, 
+                trControl=control)
+
+## Prediction & Confusion Matrix - test data
+predict_rf_model <- predict(best_model, test)
+confusionMatrix(predict_rf_model, as.factor(test$HDI_categorical))
+
+
+```
+```{r}
+library(pROC)
+library(ROCit)
+library(broom)    # tidy()
+library(tibble)   # tibble()
+## Warning: package 'ROCit' was built under R version 3.5.2
+ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
+plot(ROCit_obj)
+
+myroc <- roc(as.numeric(predict_rf_model), as.numeric(test$HDI_categorical))
+auc(myroc)
+
+
+```
+```{r}
+library(ROCit)
+## Warning: package 'ROCit' was built under R version 3.5.2
+ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
+plot(ROCit_obj)
+
+
+```
+
+```{r}
+## Prediction & Confusion Matrix - test data
+predict_rf_model <- predict(model, test)
+confusionMatrix(predict_rf_model, as.factor(test$HDI_categorical))
+```
+```{r}
+library(pROC)
+library(ROCit)
+
+## Warning: package 'ROCit' was built under R version 3.5.2
+ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
+plot(ROCit_obj)
+
+myroc <- roc(as.numeric(predict_rf_model), as.numeric(test$HDI_categorical))
+auc(myroc)
+
+
+```
+```{r}
+library(ROCit)
+## Warning: package 'ROCit' was built under R version 3.5.2
+ROCit_obj <- rocit(score=as.numeric(predict_rf_model),class=as.numeric(test$HDI_categorical))
+plot(ROCit_obj)
+
+
+```
+
+
+```{r}
+
+# Data Partition
+# 70% train, 30% test
+
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+
+train <- data[ind==1,]
+test <- data[ind==2,]
+
+
+
+
+tr_control <- trainControl(method='cv',
+                           number=5,
+                           classProbs = TRUE,
+                           verboseIter = TRUE,
+                           ntree=60)
+
+set.seed(1)
+model <- train(HDI_categorical ~ ., train,
+               method='rf', TuneLength=3,
+               trControl = tr_control)
+
+print(model)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+https://www.kaggle.com/general/23243
+
+
+For dimensionality reduction or feature extraction, I would recommend the following steps;
+
+    Missing value ratio: set up a threshold say of 80% and then check for the data columns that exceed this threshold and either impute them or remove them because data columns with exceedingly high missing values do not contribute much to the outcome. A rule of thumb is higher the threshold more stringent is the reduction.
+
+In R, you can do this by first checking the overall missing value count by using the sum(is.na(yourdataframename)) and then you can check for the column wise missing pattern by the colSums() like colSums(is.na(yourdataframename))
+
+    Check for near zero variance variables
+
+The data columns with little changes in the data carry very little information. Remember variance is range dependent therefore before you go about treating such low variance data columns do normalize them. In R you can use the nearZeroVar() function from the caret library.
+
+    Check for high correlated variables
+
+The data columns with similar trends are likely to carry similar information and are thus useless for a robust model and should be removed. But remember, correlation is scale sensitive therefore normalize the variables first. To detect for high correlated variables, you can use the cor() function and the findCorrelation() function from the base R library. Also remember, correlation works only for numeric variables so if you have categorical variables then you have to find out how to detect high correlation in them.
+
+Example in R
+
+    train.cont.cor<-cor(train.cont) # using the base R cor()
+
+    train.cont.higCor<- findCorrelation(train.cont.cor, cutoff = 0.80)
+
+    names(train[train.cont.higCor]) # There are three predictors with more than 80% correlation and these are "YearRemodAdd" "OverallCond" "BsmtQual". They should be removed from the train data
+
+    train.cont.filt<-train.cont[, -train.cont.higCor] # remove the high correlated predictors from the continuous predictors in the train data subset
+
+    train.filt<- train[, -train.cont.higCor] # remove the high correlated predictors from the train data subset
+
+
